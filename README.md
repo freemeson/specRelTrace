@@ -31,12 +31,15 @@ for a nice moving output like this
 
 ![moving cube](imageGlumpy.png?raw=true "Checkered cube moving with 0.9c and one at rest")
 
-Took some inspiration from:
 
-[1]: https://medium.com/swlh/ray-tracing-from-scratch-in-python-41670e6a96f9
 
-[2]: https://kivy.org/doc/stable/examples/gen__demo__shadereditor__main__py.html
+## Took some inspiration from:
 
-[3]: https://www.shadertoy.com/view/tl23Rm
 
-[4]: https://glumpy.readthedocs.io/en/latest/tutorial/easyway.html
+https://medium.com/swlh/ray-tracing-from-scratch-in-python-41670e6a96f9
+
+https://kivy.org/doc/stable/examples/gen__demo__shadereditor__main__py.html
+
+https://glumpy.readthedocs.io/en/latest/tutorial/easyway.html
+
+https://www.shadertoy.com/view/tl23Rm
