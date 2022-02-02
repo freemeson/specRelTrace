@@ -2,6 +2,7 @@ from inertialSystem import *
 import numpy as np
 
 class Cube:
+    sideColors = [(0.3,0,0), (0,0.3,0), (0,0,0.3)  ]
     def __init__(self, size, center, eu, ev,vel, beta = None):
         self.orientation = inertialSystem(center, eu, ev, vel, beta)
         self.halfSize = size/2
@@ -37,9 +38,9 @@ class Cube:
         #print(surface_index, ": " , surface_ui, "  " , surface_vi)
         
         if int(np.floor(tuvw[surface_ui])+np.floor(tuvw[surface_vi ])) % 2 == 1:
-            return 1.0
+            return (1,1,1)
         else:
-            return 0
+            return self.sideColors[surface_index % 3]
 
 
 

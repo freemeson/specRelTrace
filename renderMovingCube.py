@@ -12,7 +12,9 @@ screen = (-fa, fa / ratio, fa, -fa / ratio) # left, top, right, bottom
 
 image = np.zeros((height, width, 3))
 
-cube =  Cube(6, np.array([0,-18,0,-6]),np.array([0.5,0.0,  0.00]),np.array([0.0, 0.5, 0]), [1,0,0], 0.9)
+cube =  Cube(6, np.array([0,-30,0,-6]),np.array([0.5,0.0,  0.00]),np.array([0.0, 0.5, 0.0]), [1,0.0,0], 0.90)
+#cube =  Cube(6, np.array([0,-50,0,-6]),np.array([0.5,0.0,  0.00]),np.array([0.0, 0.5, 0.0]), [1,0.0,0], 0.95)
+#cube =  Cube(6, np.array([0,-300,0,-6]),np.array([0.5,0.0,  0.00]),np.array([0.0, 0.5, 0.0]), [1,0.0,0], 0.99)
 
 for i, y in enumerate(np.linspace(screen[1], screen[3], height)):
     for j, x in enumerate(np.linspace(screen[0], screen[2], width)):
@@ -20,14 +22,14 @@ for i, y in enumerate(np.linspace(screen[1], screen[3], height)):
         origin = [0,camera[0],camera[1],camera[2]]
         direction = normalize(pixel - origin)
         direction[0] = -1
-        coord = cube.intersection(origin, direction)
-        color = np.ones(3)
-        if coord==None:
-            image[i, j] = 0*color
+        color = cube.intersection(origin, direction)
+        #color = np.ones(3)
+        if color==None:
+            image[i, j] = (0,0,0)
             continue
         #print(coord)
 
-        image[i,j] = np.clip(coord * color, 0, 1)
+        image[i,j] = np.clip( color, 0, 1)
         
         
         # image[i, j] = ...
