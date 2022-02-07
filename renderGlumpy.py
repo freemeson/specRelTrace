@@ -11,17 +11,18 @@ vertex = """
 
 
 fragment = """
-//Frozen time
-#define TIME_DEFINITION camDist
-
-//Periodic time
-//#define TIME_DEFINITION mod(time*10.0,camDist)+camDist/2.0
 
     uniform float phi;
     uniform float psy;
     uniform float screen_ratio;
     uniform float time;
     varying vec2 tex_coord0;
+
+//Frozen time
+//#define TIME_DEFINITION camDist
+
+//Periodic time
+#define TIME_DEFINITION mod(time*10.0,camDist)+camDist/2.0
 #define MAX_DIST -1e5
 
 struct distanceAndColor{
@@ -29,11 +30,52 @@ struct distanceAndColor{
 	vec3 color;
 };
 
+vec3 waveLengthToRGB(float hue)
+{
+    // https://www.shadertoy.com/view/ll2cDc
+
+	return vec3(.5 + .5 * clamp( 1.3*cos(-0.3 + 6.28 * hue + vec3(0,0.66666*6.28, 0.3333*6.28)), -1.0, 1.0));
+//approximate colors
+//red is hue = 0.05
+//green is 0.38
+//blue is 0.71
+}
+
+
 distanceAndColor opU(distanceAndColor oldDistLim, float t, vec3 color) {
 
 	return (-t < oldDistLim.dLim[1]) ? distanceAndColor(vec2(oldDistLim.dLim[0], -t), color) : oldDistLim;
 }
 
+float dopplerShift(float hue, float factor){
+	float freq = 1.0/(hue+1.0); 
+	//hue=1/freq-1
+	float freqDoppl = freq*factor;
+	float hueDoppl = 1.0/freqDoppl - 1.0;
+	return hueDoppl;
+}
+
+float PHI = 1.61803398874989484820459;  // Φ = Golden Ratio   
+
+float gold_noise(in vec2 xy, in float seed){
+       return fract(tan(distance(xy*PHI, xy)*seed*2323.0)*xy.x);
+}
+
+vec3 wideSpectrum(float hue) {
+	if (hue<0.0) {
+		vec3 red = waveLengthToRGB(0.0);
+	    float noise = (1.0-exp(hue))*gold_noise(tex_coord0, time);
+		
+		return red-noise*red;
+    }
+	if (hue>1.0) {
+		vec3 violet =  waveLengthToRGB(1.0);
+		vec3 antiViolet = 1.0 - violet;
+		float noise = (1.0-exp(0.2-0.2*hue))*gold_noise(tex_coord0, time);
+		return violet+noise*antiViolet;
+    }
+	return waveLengthToRGB(hue);
+}
 
 vec4 box4(in vec4 ro, in vec4 rd, in vec4 origin, in mat4 invLor, in mat4 Einv, in vec3 halfSizes, in vec2 distLim  ) {
 	
@@ -59,21 +101,25 @@ vec4 box4(in vec4 ro, in vec4 rd, in vec4 origin, in mat4 invLor, in mat4 Einv, 
 	vec4 sptq = sptq_o + sptq_d*tF;
 	float shade = 1.0;//mod(floor(sptq.s) +floor(sptq.q) , 2.);
 	//return vec4(tF,1.0, 1.0, 1.0); 
+	vec3 red = wideSpectrum(dopplerShift(0.05, abs(sptq_d.w)));	
+	vec3 green = wideSpectrum(dopplerShift(0.38, abs(sptq_d.w)));
+	vec3 blue = wideSpectrum(dopplerShift(0.71, abs(sptq_d.w)));
 	
+	vec3 white = red+green+blue;
 	if (abs(sptq.x) + 3e-5 > halfSizes.x) {
 	
 	shade = mod(floor(sptq.y) +floor(sptq.z) , 2.);
-	vec3 color = shade*vec3(1.0, 1.0, 1.0) + (1.0-shade)*vec3(1.0, 0.0, 0.0); 
+	vec3 color = shade*white + (1.0-shade)*red; 
 	return vec4(tF,color);
 	}
 
 	if (abs(sptq.y) + 3e-5 > halfSizes.y) {shade = mod(floor(sptq.x) +floor(sptq.z) , 2.);
-   vec3 color = shade*vec3(1.0, 1.0, 1.0) + (1.0-shade)*vec3(0.0, 1.0, 0.0);
+   vec3 color = shade*white + (1.0-shade)*green;
 	
 	return vec4(tF,color);}
 	if (abs(sptq.z)+3e-5 > halfSizes.z) {shade = mod(floor(sptq.x) +floor(sptq.y) , 2.);
 	//shade = 1.0;
-	vec3 color = shade*vec3(1.0, 1.0, 1.0) + (1.0-shade)*vec3(0.0, 0.0, 1.0);
+	vec3 color = shade*white + (1.0-shade)*blue;
 	return vec4(tF,color);}
 	
 	return vec4(tF, 0.4,0.4,0.4);
@@ -109,9 +155,14 @@ distanceAndColor worldHit(in vec4 ro, in vec4 rd, in vec2 distLim, in float show
 	4.73684211, 0.0, 0.0, 4.69904779); //x-direction with 0.9c
 
 	mat4 invBoost2 = mat4(2.29415734, 0.0, 0.0, -2.0647416, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,-2.0647416, 0.0, 0.0, 2.29415734 );
+
+	mat4 invBoost05 = mat4(1.3333333, 0.0, 0.0, 0.666666, 
+		0.0, 1.0, 0.0, 0.0, 
+		0.0, 0.0, 1.0, 0.0, 
+		0.666666, 0.0, 0.0, 1.19935874); //half the speed of ligth
 	mat4 noBoost = mat4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0); //this is also the inverse of invBoost 
 	
-	vec4 dc = box4( ro, rd, vec4(0.0, 0.0, 0.0, showTime), invBoost, mat4( 1.0, 0.0, 0.0, 0.0,    0.0, 1.0, 0.0, 0.0,    0.0, 0.0, 1.0, 0.0,    0.0, 0.0, 0.0, 1.0 ), vec3(3.0, 3.0, 3.0), dlc.dLim );
+	vec4 dc = box4( ro, rd, vec4(0.0, 0.0, 0.0, showTime), invBoost05, mat4( 1.0, 0.0, 0.0, 0.0,    0.0, 1.0, 0.0, 0.0,    0.0, 0.0, 1.0, 0.0,    0.0, 0.0, 0.0, 1.0 ), vec3(3.0, 3.0, 3.0), dlc.dLim );
 	dlc = opU(dlc, dc.x, dc.yzw);
 
 	dc = box4( ro, rd, vec4(0.0, -8.0, 0.0, showTime), noBoost, mat4( 1.0, 0.0, 0.0, 0.0,    0.0, 1.0, 0.0, 0.0,    0.0, 0.0, 1.0, 0.0,    0.0, 0.0, 0.0, 1.0 ), vec3(3.0, 3.0, 3.0), dlc.dLim );
@@ -150,8 +201,7 @@ void main (void){
 	//gl_FragColor = vec4(dc.yzw,1.0);
 	//gl_FragColor = vec4(0.5,0.5,0.5,1.0);
    gl_FragColor = vec4(dlc.color*exp(-0.016*(dlc.dLim.y-camDist)),1.0);//*frag_color;
-}
-// void main() { gl_FragColor = vec4(tex_coord0.y, 0.5*sin(time)+0.5, 0.0, 1.00); } 
+}// void main() { gl_FragColor = vec4(tex_coord0.y, 0.5*sin(time)+0.5, 0.0, 1.00); } 
 """
 
 
