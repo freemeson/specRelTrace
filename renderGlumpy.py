@@ -68,12 +68,19 @@ vec3 wideSpectrum(float hue) {
 		
 		return red-noise*red;
     }
-	if (hue>1.0) {
+	if (hue>0.8) {
+		vec3 violet =  waveLengthToRGB(0.8);
+		vec3 antiViolet = 1.0 - violet;
+		float noise = (1.0-exp(0.16-0.16*hue))*gold_noise(tex_coord0, time);
+		return violet+noise*antiViolet;
+    }
+
+/*	if (hue>1.0) {
 		vec3 violet =  waveLengthToRGB(1.0);
 		vec3 antiViolet = 1.0 - violet;
 		float noise = (1.0-exp(0.2-0.2*hue))*gold_noise(tex_coord0, time);
 		return violet+noise*antiViolet;
-    }
+}*/
 	return waveLengthToRGB(hue);
 }
 
@@ -161,8 +168,13 @@ distanceAndColor worldHit(in vec4 ro, in vec4 rd, in vec2 distLim, in float show
 		0.0, 0.0, 1.0, 0.0, 
 		0.666666, 0.0, 0.0, 1.19935874); //half the speed of ligth
 	mat4 noBoost = mat4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0); //this is also the inverse of invBoost 
+
+
 	
 	vec4 dc = box4( ro, rd, vec4(0.0, 0.0, 0.0, showTime), invBoost05, mat4( 1.0, 0.0, 0.0, 0.0,    0.0, 1.0, 0.0, 0.0,    0.0, 0.0, 1.0, 0.0,    0.0, 0.0, 0.0, 1.0 ), vec3(3.0, 3.0, 3.0), dlc.dLim );
+	dlc = opU(dlc, dc.x, dc.yzw);
+
+	dc = box4( ro, rd, vec4(0.0, 0.0, 7.0, showTime), invBoost, mat4( 1.0, 0.0, 0.0, 0.0,    0.0, 1.0, 0.0, 0.0,    0.0, 0.0, 1.0, 0.0,    0.0, 0.0, 0.0, 1.0 ), vec3(3.0, 3.0, 3.0), dlc.dLim );
 	dlc = opU(dlc, dc.x, dc.yzw);
 
 	dc = box4( ro, rd, vec4(0.0, -8.0, 0.0, showTime), noBoost, mat4( 1.0, 0.0, 0.0, 0.0,    0.0, 1.0, 0.0, 0.0,    0.0, 0.0, 1.0, 0.0,    0.0, 0.0, 0.0, 1.0 ), vec3(3.0, 3.0, 3.0), dlc.dLim );
