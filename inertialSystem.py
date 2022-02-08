@@ -68,6 +68,16 @@ class inertialSystem:
                 self.LorentzBoost[1:4,1:4] = np.diag([1,1,1]) + (self.gamma-1)*vm
                 self.InverseBoost = np.linalg.inv(self.LorentzBoost)
 
+    def getInvLorentzOpenGL(self):
+        return self.matrixGLView(self.InverseBoost)
+
+    def getLorentzOpenGL(self):
+        return self.matrixGLView(self.LorentzBoost)
+
+    @staticmethod
+    def matrixGLView(mat4):
+        return mat4[ [1,2,3,0],:  ][:,[1,2,3,0]]
+        
     @staticmethod  
     def _expandVector_(vec):
         if len(vec) == 3:
