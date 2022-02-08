@@ -64,6 +64,40 @@ float gold_noise(in vec2 xy, in float seed){
 }
 
 
+vec3 wideSpectrum(float hue) {
+	if (hue<0.0) {
+		vec3 red = waveLengthToRGB(0.0);
+	    float noise = (-hue)*gold_noise(tex_coord0, time);
+		
+		return red-noise*red;
+    }
+	if (hue>0.8) {
+		vec3 violet =  waveLengthToRGB(0.8)*exp(-(hue-0.8));
+		vec3 antiViolet = 1.0 - violet;
+		float noise = (1.0-exp(0.16*0.8-0.16*hue))*gold_noise(tex_coord0, time*10.0); //larger seed means less correlations
+		return violet+noise*antiViolet;
+    }
+	return waveLengthToRGB(hue);
+}
+
+
+vec3 wideSpectrum0(float hue) {
+	if (hue<0.0) {
+		vec3 red = waveLengthToRGB(0.0);
+	    float noise = (1.0-exp(hue))*gold_noise(tex_coord0, time);
+		
+		return red-noise*red;
+    }
+	if (hue>0.8) {
+		vec3 violet =  waveLengthToRGB(0.8);
+		vec3 antiViolet = 1.0 - violet;
+		float noise = (1.0-exp(0.16-0.16*hue))*gold_noise(tex_coord0, time);
+		return violet+noise*antiViolet;
+    }
+
+	return waveLengthToRGB(hue);
+}
+
 vec3 wideSpectrum2(float hue) {
 	if (hue<0.0) {
 		vec3 red = waveLengthToRGB(0.0);
@@ -82,28 +116,26 @@ vec3 wideSpectrum2(float hue) {
 }
 
 
-vec3 wideSpectrum(float hue) {
+/*vec3 wideSpectrum(float hue,in vec2 xy, in float seed) {
 	if (hue<0.0) {
-		vec3 red = waveLengthToRGB(0.0);
-	    float noise = (1.0-exp(hue))*gold_noise(tex_coord0, time);
+		vec3 red = hueToRGB(0.0);
+	    float noise = (-hue)*gold_noise(xy, seed);
 		
 		return red-noise*red;
     }
 	if (hue>0.8) {
-		vec3 violet =  waveLengthToRGB(0.8);
+		vec3 violet =  hueToRGB(0.8)*exp(-(hue-0.8));
 		vec3 antiViolet = 1.0 - violet;
-		float noise = (1.0-exp(0.16-0.16*hue))*gold_noise(tex_coord0, time);
+		//float noise = (1.0-exp(0.16-0.16*hue))*gold_noise(xy, seed);
+		float noise = (1.0-exp(0.16*0.8-0.16*hue))*gold_noise(xy, seed);
 		return violet+noise*antiViolet;
+//        return violet-noise*violet;
     }
 
-/*	if (hue>1.0) {
-		vec3 violet =  waveLengthToRGB(1.0);
-		vec3 antiViolet = 1.0 - violet;
-		float noise = (1.0-exp(0.2-0.2*hue))*gold_noise(tex_coord0, time);
-		return violet+noise*antiViolet;
-}*/
-	return waveLengthToRGB(hue);
-}
+	return hueToRGB(hue);
+} */
+
+
 
 
 vec4 sphere4(in vec4 ro, in vec4 rd, in vec4 origin, in mat4 invLor, in mat4 Einv, float radius, in vec2 distLim) {
@@ -130,8 +162,10 @@ vec4 sphere4(in vec4 ro, in vec4 rd, in vec4 origin, in mat4 invLor, in mat4 Ein
 
 
    float t = -b+sqrt(discr);
-   float ti = t/len;
+   float ti = t/len; //assuming that the 4-vector lenght is rd*rd is zero, ligth-like
+
    if (-ti < distLim[0] || -ti > distLim[1]) {return vec4(MAX_DIST, 0.0, 1.0, 0.0);}
+
 //	return vec4(0,1.0/t, 1.0, 1.0 );
 	//return vec4(-t, 1.0, 1.0, 1.0);
    //the real time is t_Real = t*sptq_d.w, usually just a negative sign
@@ -148,7 +182,7 @@ vec4 sphere4(in vec4 ro, in vec4 rd, in vec4 origin, in mat4 invLor, in mat4 Ein
 	vec3 yellow = wideSpectrum(dopplerShift(0.22, abs(sptq_d.w)));
 
    vec3 color = shade*vec3(0.0, 0.0, 0.0) + (1.0-shade)*yellow;
-   return vec4(-ti, color);
+   return vec4(ti, color);
 }
 
 vec4 box4(in vec4 ro, in vec4 rd, in vec4 origin, in mat4 invLor, in mat4 Einv, in vec3 halfSizes, in vec2 distLim  ) {
@@ -248,6 +282,9 @@ distanceAndColor worldHit(in vec4 ro, in vec4 rd, in vec2 distLim, in float show
 		    0.0, 1.0, 0.0, 0.0,  
 		    0.0, 0.0, 1.0, 0.0,   
             0.0, 0.0, 0.0, 1.0 );
+
+        mat4 tiltedOrientation = mat4( 1.0, 0.0, 0.0, 0.0,    0.0, 0.0, 1.0, 0.0,    0.0, 1.0, 0.0, 0.0,    0.0, 0.0, 0.0, 1.0 );
+
 	vec4 dc = box4( ro, rd, vec4(0.0, 0.0, 0.0, showTime), invBoost05, orientation , vec3(3.0, 3.0, 3.0), dlc.dLim );
 	dlc = opU(dlc, dc.x, dc.yzw);
 
@@ -255,16 +292,21 @@ distanceAndColor worldHit(in vec4 ro, in vec4 rd, in vec2 distLim, in float show
 	dlc = opU(dlc, dc.x, dc.yzw);
 
 	dc = box4( ro, rd, vec4(0.0, 0.0, -7.0, showTime), invBoost099, orientation, vec3(3.0, 3.0, 3.0), dlc.dLim );
-	dlc = opU(dlc, dc.x, dc.yzw); 
-
+	dlc = opU(dlc, dc.x, dc.yzw);
+        
+        
         dc = box4( ro, rd, vec4(0.0, -8.0, 0.0, showTime), noBoost, orientation, vec3(3.0, 3.0, 3.0), dlc.dLim );
 	dlc = opU(dlc, dc.x, dc.yzw);
 
-	dc = plane4(ro, rd, vec4(0.0, -11.0, 0.0, 0.0), noBoost,mat4( 1.0, 0.0, 0.0, 0.0,    0.0, 0.0, 1.0, 0.0,    0.0, 1.0, 0.0, 0.0,    0.0, 0.0, 0.0, 1.0 ), dlc.dLim );	
+	dc = plane4(ro, rd, vec4(0.0, -11.0, 0.0, 0.0), noBoost, tiltedOrientation, dlc.dLim );	
 	dlc = opU(dlc, dc.x, dc.yzw);
 
-        dc = sphere4(ro, rd, vec4(0.0, 0.0, 0.0, showTime), invBoost05, orientation, 4.0, dlc.dLim);
+        dc = sphere4(ro, rd, vec4(0.0, 7.0, -7.0, showTime), invBoost, orientation, 4.0, dlc.dLim);
         dlc = opU(dlc, dc.x, dc.yzw);
+
+        dc = sphere4(ro, rd,vec4(0.0, 7.0, 7.0, showTime), invBoost2, orientation, 3.0, dlc.dLim );
+        dlc = opU(dlc, dc.x, dc.yzw);
+
 		//dlc = distanceAndColor( vec2(0.0001, -dc.x), dc.yzw );
 	return dlc;
 }
@@ -275,8 +317,9 @@ void main (void){
 	
 	
 	float camDist = 50.0;
+        float invFOV = 1.0;
 	vec4 ro = vec4(0.0, 0.0, camDist, 0.0);
-	vec3 rd3=normalize(vec3(tex_coord0[0]-0.5-ro.x, screen_ratio*(tex_coord0[1]-0.5-ro.y),camDist+2.5-ro.z)); //z is funny, I know
+	vec3 rd3=normalize(vec3(tex_coord0[0]-0.5-ro.x, screen_ratio*(tex_coord0[1]-0.5-ro.y),camDist+invFOV-ro.z)); //z is funny, I know
    vec4 rd = vec4(rd3,-1.0);
 	
 	//float phi = time/4.0;
