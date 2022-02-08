@@ -1,4 +1,9 @@
 '''
+This shader editor is a slightly modifies version of a kivy app from their example 
+gallery. 
+
+https://kivy.org/doc/stable/examples/gen__demo__shadereditor__main__py.html
+
 Live Shader Editor
 ==================
 
