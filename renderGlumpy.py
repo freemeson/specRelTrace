@@ -18,6 +18,8 @@ fragment = """
     uniform float time;
     varying vec2 tex_coord0;
 
+
+
 //Frozen time
 //#define TIME_DEFINITION camDist
 
@@ -61,6 +63,25 @@ float gold_noise(in vec2 xy, in float seed){
        return fract(tan(distance(xy*PHI, xy)*seed*2323.0)*xy.x);
 }
 
+
+vec3 wideSpectrum2(float hue) {
+	if (hue<0.0) {
+		vec3 red = waveLengthToRGB(0.0);
+	    float noise = (-hue)*gold_noise(tex_coord0, time);
+		
+		return red-noise*red;
+    }
+	if (hue>0.8) {
+		vec3 violet =  waveLengthToRGB(0.8)*exp(0.8-hue);
+		vec3 antiViolet = 1.0 - violet;
+		float noise = (1.0-exp(0.128-0.16*hue))*gold_noise(tex_coord0, time);
+		return violet+noise*antiViolet;
+    }
+
+	return waveLengthToRGB(hue);
+}
+
+
 vec3 wideSpectrum(float hue) {
 	if (hue<0.0) {
 		vec3 red = waveLengthToRGB(0.0);
@@ -82,6 +103,52 @@ vec3 wideSpectrum(float hue) {
 		return violet+noise*antiViolet;
 }*/
 	return waveLengthToRGB(hue);
+}
+
+
+vec4 sphere4(in vec4 ro, in vec4 rd, in vec4 origin, in mat4 invLor, in mat4 Einv, float radius, in vec2 distLim) {
+	//origin = vec4(0.0, 0.0, 0.0, 0.0);
+    vec4 rayorig = invLor*(ro - origin);
+	vec4 raydir = invLor*rd;
+	
+	vec4 sptq_o = Einv * rayorig;
+	vec4 sptq_d = Einv * raydir;
+   
+	//float b = dot(rayorig.xyz , normalize(raydir.xyz));
+
+	vec3 ray_o = sptq_o.xyz;
+	float len = sqrt(dot(sptq_d.xyz,sptq_d.xyz));
+	vec3 ray_d = sptq_d.xyz/len;
+	float b = dot(ray_o, ray_d);	
+	//radius = 9.0;
+	float c = dot(ray_o, ray_o)- radius*radius;
+   float discr = b*b - c;
+
+
+   
+   if (discr < 0.0) {return vec4(MAX_DIST, 1.0, 0.0, 0.0); }
+
+
+   float t = -b+sqrt(discr);
+   float ti = t/len;
+   if (-ti < distLim[0] || -ti > distLim[1]) {return vec4(MAX_DIST, 0.0, 1.0, 0.0);}
+//	return vec4(0,1.0/t, 1.0, 1.0 );
+	//return vec4(-t, 1.0, 1.0, 1.0);
+   //the real time is t_Real = t*sptq_d.w, usually just a negative sign
+   vec3 ri = ray_o + t*ray_d;
+   float phi=atan(ri.z, ri.x);
+   float theta = acos((ri.y)/radius);
+
+   float shade = mod(floor(4.0*radius*phi/6.283) + floor(2.0*radius*theta/3.1415), 2.);
+
+	vec3 red = wideSpectrum(dopplerShift(0.05, abs(sptq_d.w)));
+	
+	vec3 green = wideSpectrum(dopplerShift(0.38, abs(sptq_d.w)));
+	vec3 blue = wideSpectrum(dopplerShift(0.71, abs(sptq_d.w)));
+	vec3 yellow = wideSpectrum(dopplerShift(0.22, abs(sptq_d.w)));
+
+   vec3 color = shade*vec3(0.0, 0.0, 0.0) + (1.0-shade)*yellow;
+   return vec4(-ti, color);
 }
 
 vec4 box4(in vec4 ro, in vec4 rd, in vec4 origin, in mat4 invLor, in mat4 Einv, in vec3 halfSizes, in vec2 distLim  ) {
@@ -161,28 +228,44 @@ distanceAndColor worldHit(in vec4 ro, in vec4 rd, in vec2 distLim, in float show
 	0.0, 0.0, 1.0, 0.0, 
 	4.73684211, 0.0, 0.0, 4.69904779); //x-direction with 0.9c
 
-	mat4 invBoost2 = mat4(2.29415734, 0.0, 0.0, -2.0647416, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,-2.0647416, 0.0, 0.0, 2.29415734 );
+	mat4 invBoost2 = mat4(2.29415734, 0.0, 0.0, -2.0647416, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,-2.0647416, 0.0, 0.0, 2.29415734 ); //this is also the inverse of invBoost 
 
 	mat4 invBoost05 = mat4(1.3333333, 0.0, 0.0, 0.666666, 
 		0.0, 1.0, 0.0, 0.0, 
 		0.0, 0.0, 1.0, 0.0, 
 		0.666666, 0.0, 0.0, 1.19935874); //half the speed of ligth
-	mat4 noBoost = mat4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0); //this is also the inverse of invBoost 
+	mat4 noBoost = mat4(1.0, 0.0, 0.0,0.0,
+			 0.0, 1.0, 0.0, 0.0, 
+			 0.0, 0.0, 1.0, 0.0,
+             0.0, 0.0, 0.0, 1.0); 
 
-
+        mat4 invBoost099 = mat4(50.25125628,  0.        ,  0.        , 49.74874372,
+          0.        ,  1.        ,  0.        ,  0.        ,
+          0.        ,  0.        ,  1.        ,  0.        ,
+          49.74874372,  0.        ,  0.        , 49.39232364);
 	
-	vec4 dc = box4( ro, rd, vec4(0.0, 0.0, 0.0, showTime), invBoost05, mat4( 1.0, 0.0, 0.0, 0.0,    0.0, 1.0, 0.0, 0.0,    0.0, 0.0, 1.0, 0.0,    0.0, 0.0, 0.0, 1.0 ), vec3(3.0, 3.0, 3.0), dlc.dLim );
+        mat4 orientation = mat4( 1.0, 0.0, 0.0, 0.0,
+		    0.0, 1.0, 0.0, 0.0,  
+		    0.0, 0.0, 1.0, 0.0,   
+            0.0, 0.0, 0.0, 1.0 );
+	vec4 dc = box4( ro, rd, vec4(0.0, 0.0, 0.0, showTime), invBoost05, orientation , vec3(3.0, 3.0, 3.0), dlc.dLim );
 	dlc = opU(dlc, dc.x, dc.yzw);
 
-	dc = box4( ro, rd, vec4(0.0, 0.0, 7.0, showTime), invBoost, mat4( 1.0, 0.0, 0.0, 0.0,    0.0, 1.0, 0.0, 0.0,    0.0, 0.0, 1.0, 0.0,    0.0, 0.0, 0.0, 1.0 ), vec3(3.0, 3.0, 3.0), dlc.dLim );
+	dc = box4( ro, rd, vec4(0.0, 0.0, 7.0, showTime), invBoost, orientation, vec3(3.0, 3.0, 3.0), dlc.dLim );
 	dlc = opU(dlc, dc.x, dc.yzw);
 
-	dc = box4( ro, rd, vec4(0.0, -8.0, 0.0, showTime), noBoost, mat4( 1.0, 0.0, 0.0, 0.0,    0.0, 1.0, 0.0, 0.0,    0.0, 0.0, 1.0, 0.0,    0.0, 0.0, 0.0, 1.0 ), vec3(3.0, 3.0, 3.0), dlc.dLim );
+	dc = box4( ro, rd, vec4(0.0, 0.0, -7.0, showTime), invBoost099, orientation, vec3(3.0, 3.0, 3.0), dlc.dLim );
+	dlc = opU(dlc, dc.x, dc.yzw); 
+
+        dc = box4( ro, rd, vec4(0.0, -8.0, 0.0, showTime), noBoost, orientation, vec3(3.0, 3.0, 3.0), dlc.dLim );
 	dlc = opU(dlc, dc.x, dc.yzw);
 
 	dc = plane4(ro, rd, vec4(0.0, -11.0, 0.0, 0.0), noBoost,mat4( 1.0, 0.0, 0.0, 0.0,    0.0, 0.0, 1.0, 0.0,    0.0, 1.0, 0.0, 0.0,    0.0, 0.0, 0.0, 1.0 ), dlc.dLim );	
 	dlc = opU(dlc, dc.x, dc.yzw);
 
+        dc = sphere4(ro, rd, vec4(0.0, 0.0, 0.0, showTime), invBoost05, orientation, 4.0, dlc.dLim);
+        dlc = opU(dlc, dc.x, dc.yzw);
+		//dlc = distanceAndColor( vec2(0.0001, -dc.x), dc.yzw );
 	return dlc;
 }
 
@@ -193,7 +276,7 @@ void main (void){
 	
 	float camDist = 50.0;
 	vec4 ro = vec4(0.0, 0.0, camDist, 0.0);
-	vec3 rd3=normalize(vec3(tex_coord0[0]-0.5-ro.x, screen_ratio*(tex_coord0[1]-0.5-ro.y),camDist+1.5-ro.z)); //z is funny, I know
+	vec3 rd3=normalize(vec3(tex_coord0[0]-0.5-ro.x, screen_ratio*(tex_coord0[1]-0.5-ro.y),camDist+2.5-ro.z)); //z is funny, I know
    vec4 rd = vec4(rd3,-1.0);
 	
 	//float phi = time/4.0;
@@ -213,7 +296,13 @@ void main (void){
 	//gl_FragColor = vec4(dc.yzw,1.0);
 	//gl_FragColor = vec4(0.5,0.5,0.5,1.0);
    gl_FragColor = vec4(dlc.color*exp(-0.016*(dlc.dLim.y-camDist)),1.0);//*frag_color;
-}// void main() { gl_FragColor = vec4(tex_coord0.y, 0.5*sin(time)+0.5, 0.0, 1.00); } 
+}
+
+
+
+
+
+// void main() { gl_FragColor = vec4(tex_coord0.y, 0.5*sin(time)+0.5, 0.0, 1.00); } 
 """
 
 
