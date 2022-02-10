@@ -76,7 +76,7 @@ class inertialSystem:
 
     @staticmethod
     def matrixGLView(mat4):
-        return mat4[ [1,2,3,0],:  ][:,[1,2,3,0]]
+        return np.array(mat4[ [1,2,3,0],:  ][:,[1,2,3,0]], dtype = np.float32)
         
     @staticmethod  
     def _expandVector_(vec):
