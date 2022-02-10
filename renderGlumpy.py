@@ -23,10 +23,11 @@ fragment = """
 
 
 //Frozen time
-//#define TIME_DEFINITION camDist
+#define TIME_DEFINITION camDist
 
 //Periodic time
-#define TIME_DEFINITION mod(time*10.0,camDist)+camDist/2.0
+//#define TIME_DEFINITION mod(10.0*time, 100.0)+camDist-50.0
+//#define TIME_DEFINITION mod(time*10.0,camDist)+camDist/2.0
 #define MAX_DIST -1e5
 
 struct distanceAndColor{
@@ -59,7 +60,7 @@ float dopplerShift(float hue, float factor){
 	return hueDoppl;
 }
 
-float PHI = 1.61803398874989484820459;  // Φ = Golden Ratio   
+float PHI = 1.61803398874989484820459;  
 
 float gold_noise(in vec2 xy, in float seed){
        return fract(tan(distance(xy*PHI, xy)*seed*2323.0)*xy.x);
@@ -251,8 +252,15 @@ vec4 plane4(in vec4 ro, in vec4 rd, in vec4 origin, in mat4 invLor,in mat4 Einv,
 	
 	if (t>0.0 || t>-distLim[0] || t<-distLim[1] ) {return vec4(MAX_DIST, 0.0, 0.0, 0.0);}
 	
-	float color = mod(floor(uvwt.x) + floor(uvwt.y), 2.);
-	return vec4(t,color*vec3(1.0, 1.0, 1.0));
+	float shade = mod(floor(uvwt.x) + floor(uvwt.y), 2.);
+        vec3 red = wideSpectrum(dopplerShift(0.05, abs(uvwt_d.w)));	
+	vec3 green = wideSpectrum(dopplerShift(0.38, abs(uvwt_d.w)));
+	vec3 blue = wideSpectrum(dopplerShift(0.71, abs(uvwt_d.w)));
+	
+	vec3 white = red+green+blue;
+
+
+	return vec4(t,shade*vec3(0.0, 0.0 , 0.0) + (1.0-shade)*white);
 }
 
 
@@ -332,7 +340,7 @@ void main (void){
 	mat4 rotationYZ = mat4( 1.0, 0.0, 0.0, 0.0, 0.0, cos(psy), -sin(psy), 0.0, 0.0, sin(psy), cos(psy), 0.0, 0.0, 0.0, 0.0, 1.0 );
 
 	ro = camLorentz*rotationXZ * rotationYZ* ro;
-	rd = camLorentz*rotationXZ * rotationYZ*rd;
+	rd = camLorentz *rotationXZ * rotationYZ*rd;
 	float showTime= TIME_DEFINITION;
 
 	
@@ -368,9 +376,10 @@ quad['camLorentz'] = np.eye(4, dtype=np.float32)
 
 target_angles = np.array([0.0,0.3])
 angvel = np.array([0.0, 0.0])
+time_factor = 10.0 #the same factor is hardcoded to the glsl file
 v_max = 0.99/20.0/2.0
 #max acceleration
-a_max = 10000.0
+a_max = 1000.0
 
 def normalize(vec):
     return np.array(vec)/np.linalg.norm(vec)
@@ -391,16 +400,11 @@ def sph2cartTangent(az, el,  dAz, dEl, r ):
     
     grad_el = np.array([ rcos_theta_prime*caz, -rcos_theta_prime*saz, rcos_theta  ])
     
-    grad_az = np.array([rcos_theta*saz, rcos_theta*caz, -rcos_theta_prime ])
+    grad_az = np.array([rcos_theta*saz, -rcos_theta*caz, 0.0 ])
     return (grad_el*dEl + grad_az*dAz)
 
 
-
-# Tell glumpy what needs to be done at each redraw
-@window.event
-def on_draw(dt):
-    window.clear()
-    quad['time']=app.clock.time.time()-t0
+def kineticRotation(dt):
     global angvel
     # print(app.clock.time.time())
     if (target_angles[0] != quad['phi']) or (target_angles[1]!=quad['psy']) or (angvel[0] != 0.0) or (angvel[1] != 0.0) :
@@ -418,18 +422,25 @@ def on_draw(dt):
                 new_angular_velocity *= maximized_speed/new_speed
                 angvel = new_angular_velocity
                 #new position
-                quad['phi'] += new_angular_velocity[0]*dt
-                quad['psy'] += new_angular_velocity[1]*dt
+                quad['phi'] += new_angular_velocity[0]*dt*time_factor
+                quad['psy'] += new_angular_velocity[1]*dt*time_factor
                 #print(angvel)
 #                pos = sph2cart(psi, phy, 20.0)[ 0, 2, 1  ] #x,z,y is needed
                 vel = sph2cartTangent(float(quad['phi']), float(quad['psy']), float(new_angular_velocity[0]), float(new_angular_velocity[1]), 20.0)[[1, 2, 0]]
                 velnorm = np.linalg.norm(vel)
-                print(vel)
-                print(new_angular_velocity)
+                #print(vel)
+                #print(new_angular_velocity)
                 iS = inertialSystem( [0.0, 0.0, 0.0 , 0.0],  [1.0, 0.0, 0.0], [0.0, 0.0, 0.0],   vel  ) ##radius is 20.0
                 quad['camLorentz'] = iS.getLorentzOpenGL()
             else:
                 quad['camLorentz'] = np.eye(4, dtype=np.float32)
+
+# Tell glumpy what needs to be done at each redraw
+@window.event
+def on_draw(dt):
+    window.clear()
+    quad['time']=app.clock.time.time()-t0
+    kineticRotation(dt)
     quad.draw(gl.GL_TRIANGLE_STRIP)
 
 
