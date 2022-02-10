@@ -1,4 +1,6 @@
 from glumpy import app, gloo, gl
+#from pyglet.window import key
+from inertialSystem import *
 import numpy as np
 
 vertex = """
@@ -17,7 +19,7 @@ fragment = """
     uniform float screen_ratio;
     uniform float time;
     varying vec2 tex_coord0;
-
+    uniform mat4 camLorentz;
 
 
 //Frozen time
@@ -316,8 +318,8 @@ void main (void){
 	distanceAndColor dlc=distanceAndColor(vec2(0.0001, 500.0), vec3(0.0, 0.0, 0.0));
 	
 	
-	float camDist = 50.0;
-        float invFOV = 1.0;
+	float camDist = 20.0;
+        float invFOV = 0.5;
 	vec4 ro = vec4(0.0, 0.0, camDist, 0.0);
 	vec3 rd3=normalize(vec3(tex_coord0[0]-0.5-ro.x, screen_ratio*(tex_coord0[1]-0.5-ro.y),camDist+invFOV-ro.z)); //z is funny, I know
    vec4 rd = vec4(rd3,-1.0);
@@ -329,8 +331,8 @@ void main (void){
 	
 	mat4 rotationYZ = mat4( 1.0, 0.0, 0.0, 0.0, 0.0, cos(psy), -sin(psy), 0.0, 0.0, sin(psy), cos(psy), 0.0, 0.0, 0.0, 0.0, 1.0 );
 
-	ro = rotationXZ * rotationYZ* ro;
-	rd = rotationXZ * rotationYZ*rd;
+	ro = camLorentz*rotationXZ * rotationYZ* ro;
+	rd = camLorentz*rotationXZ * rotationYZ*rd;
 	float showTime= TIME_DEFINITION;
 
 	
@@ -343,9 +345,6 @@ void main (void){
 
 
 
-
-
-// void main() { gl_FragColor = vec4(tex_coord0.y, 0.5*sin(time)+0.5, 0.0, 1.00); } 
 """
 
 
@@ -365,13 +364,72 @@ quad['vTexCoords0'] = texture_coords
 quad['phi'] = 0.0
 quad['psy'] = 0.3
 quad['screen_ratio'] = 1.0
+quad['camLorentz'] = np.eye(4, dtype=np.float32)
+
+target_angles = np.array([0.0,0.3])
+angvel = np.array([0.0, 0.0])
+v_max = 0.99/20.0/2.0
+#max acceleration
+a_max = 10000.0
+
+def normalize(vec):
+    return np.array(vec)/np.linalg.norm(vec)
+
+
+def sph2cart(az, el, r):
+    rcos_theta = r * np.cos(el)
+    x = rcos_theta * np.cos(az)
+    y = rcos_theta * np.sin(az)
+    z = r * np.sin(el)
+    return x, y, z
+
+def sph2cartTangent(az, el,  dAz, dEl, r ):
+    rcos_theta_prime = -r * np.sin(el)
+    rcos_theta = r * np.cos(el)
+    saz = np.sin(az)
+    caz = np.cos(az)
+    
+    grad_el = np.array([ rcos_theta_prime*caz, -rcos_theta_prime*saz, rcos_theta  ])
+    
+    grad_az = np.array([rcos_theta*saz, rcos_theta*caz, -rcos_theta_prime ])
+    return (grad_el*dEl + grad_az*dAz)
+
+
 
 # Tell glumpy what needs to be done at each redraw
 @window.event
 def on_draw(dt):
     window.clear()
     quad['time']=app.clock.time.time()-t0
-   # print(app.clock.time.time())
+    global angvel
+    # print(app.clock.time.time())
+    if (target_angles[0] != quad['phi']) or (target_angles[1]!=quad['psy']) or (angvel[0] != 0.0) or (angvel[1] != 0.0) :
+        arc_diff = target_angles - np.array( [ float(quad['phi']), float(quad['psy']) ]  )
+
+        angvel *= 0.95 #drag
+        diff_norm = np.linalg.norm(arc_diff)
+        if diff_norm != 0:
+            new_norm = min(a_max, diff_norm)
+            acc = arc_diff*(new_norm/diff_norm)
+            new_angular_velocity = angvel+acc*dt
+            new_speed = np.linalg.norm(new_angular_velocity)
+            if new_speed != 0:
+                maximized_speed = min(v_max, new_speed)
+                new_angular_velocity *= maximized_speed/new_speed
+                angvel = new_angular_velocity
+                #new position
+                quad['phi'] += new_angular_velocity[0]*dt
+                quad['psy'] += new_angular_velocity[1]*dt
+                #print(angvel)
+#                pos = sph2cart(psi, phy, 20.0)[ 0, 2, 1  ] #x,z,y is needed
+                vel = sph2cartTangent(float(quad['phi']), float(quad['psy']), float(new_angular_velocity[0]), float(new_angular_velocity[1]), 20.0)[[1, 2, 0]]
+                velnorm = np.linalg.norm(vel)
+                print(vel)
+                print(new_angular_velocity)
+                iS = inertialSystem( [0.0, 0.0, 0.0 , 0.0],  [1.0, 0.0, 0.0], [0.0, 0.0, 0.0],   vel  ) ##radius is 20.0
+                quad['camLorentz'] = iS.getLorentzOpenGL()
+            else:
+                quad['camLorentz'] = np.eye(4, dtype=np.float32)
     quad.draw(gl.GL_TRIANGLE_STRIP)
 
 
@@ -379,14 +437,24 @@ def on_draw(dt):
 def on_resize(width, height):
     quad['screen_ratio'] = height/width;
 
-
+@window.event
+def on_key_press(symbol, modifiers):
+    print('Key pressed (symbol=%s, modifiers=%s)'% (symbol,modifiers))
+    if symbol==97:
+        target_angles[0] += 0.01
+    if symbol==100:
+        target_angles[0] -= 0.01
+        
 @window.event
 def on_mouse_drag(x,y,dx,dy,buttons):
    # print('drag ', x, ' ',y, ' ', dx, ' ',dy )
     #print(window.width)
-    quad['phi'] += 3*dx/window.width
-    quad['psy'] += 3*dy/window.height
-    quad['psy'] = max(-0.1, min(0.9, quad['psy']))
+    target_angles[0] += 3*dx/window.width
+    target_angles[1] += 3*dy/window.height
+    target_angles[1] = max(-0.1, min(0.9, target_angles[1]))
+    #quad['phi'] += 3*dx/window.width
+    #quad['psy'] += 3*dy/window.height
+    #quad['psy'] = max(-0.1, min(0.9, quad['psy']))
     
 
 # Run the app
