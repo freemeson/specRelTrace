@@ -252,7 +252,7 @@ vec4 plane4(in vec4 ro, in vec4 rd, in vec4 origin, in mat4 invLor,in mat4 Einv,
 	
 	if (t>0.0 || t>-distLim[0] || t<-distLim[1] ) {return vec4(MAX_DIST, 0.0, 0.0, 0.0);}
 	
-	float shade = mod(floor(uvwt.x) + floor(uvwt.y), 2.);
+	float shade = mod(floor(uvwt.x/2.0) + floor(uvwt.y/2.0), 2.);
         vec3 red = wideSpectrum(dopplerShift(0.05, abs(uvwt_d.w)));	
 	vec3 green = wideSpectrum(dopplerShift(0.38, abs(uvwt_d.w)));
 	vec3 blue = wideSpectrum(dopplerShift(0.71, abs(uvwt_d.w)));
