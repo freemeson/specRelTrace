@@ -23,10 +23,10 @@ fragment = """
 
 
 //Frozen time
-#define TIME_DEFINITION camDist
+//#define TIME_DEFINITION camDist
 
 //Periodic time
-//#define TIME_DEFINITION mod(10.0*time, 100.0)+camDist-50.0
+#define TIME_DEFINITION mod(10.0*time, 100.0)+camDist-50.0
 //#define TIME_DEFINITION mod(time*10.0,camDist)+camDist/2.0
 #define MAX_DIST -1e5
 
@@ -253,14 +253,14 @@ vec4 plane4(in vec4 ro, in vec4 rd, in vec4 origin, in mat4 invLor,in mat4 Einv,
 	if (t>0.0 || t>-distLim[0] || t<-distLim[1] ) {return vec4(MAX_DIST, 0.0, 0.0, 0.0);}
 	
 	float shade = mod(floor(uvwt.x/2.0) + floor(uvwt.y/2.0), 2.);
-        vec3 red = wideSpectrum(dopplerShift(0.05, abs(uvwt_d.w)));	
+        //vec3 red = wideSpectrum(dopplerShift(0.05, abs(uvwt_d.w)));	
 	vec3 green = wideSpectrum(dopplerShift(0.38, abs(uvwt_d.w)));
-	vec3 blue = wideSpectrum(dopplerShift(0.71, abs(uvwt_d.w)));
-	
-	vec3 white = red+green+blue;
+	//vec3 blue = wideSpectrum(dopplerShift(0.71, abs(uvwt_d.w)));
+	//vec3 yellow = wideSpectrum(dopplerShift(0.22, abs(uvwt_d.w)));
+	//vec3 white = red+green+blue;
 
 
-	return vec4(t,shade*vec3(0.0, 0.0 , 0.0) + (1.0-shade)*white);
+	return vec4(t,shade*vec3(0.0, 0.0 , 0.0) + (1.0-shade)*green);
 }
 
 
@@ -401,7 +401,7 @@ def sph2cartTangent(az, el,  dAz, dEl, r ):
     grad_el = np.array([ rcos_theta_prime*caz, -rcos_theta_prime*saz, rcos_theta  ])
     
     grad_az = np.array([rcos_theta*saz, -rcos_theta*caz, 0.0 ])
-    return (grad_el*dEl + grad_az*dAz)
+    return (grad_el*dEl - grad_az*dAz)
 
 
 def kineticRotation(dt):
@@ -455,6 +455,8 @@ def on_key_press(symbol, modifiers):
         target_angles[0] += 0.01
     if symbol==100:
         target_angles[0] -= 0.01
+
+        #l=108, c= 99, t= 116
         
 @window.event
 def on_mouse_drag(x,y,dx,dy,buttons):
