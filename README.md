@@ -15,7 +15,7 @@ python renderGlumpy.py
 ```
 for a nice moving output like this
 
-![moving cube](imageGlumpy.png?raw=true "Checkered cube moving with 0.5c and one at rest")
+![moving cube](imageGlumpy.png?raw=true "Checkered cube moving with 0.5c, the others with 0.9c, 0.99, one at rest, two shperes moving in opposite directions and the camera is rotation around the origin")
 
 You can rotate the scene with a mouse drag. The relativistic Doppler effect shifts the light to ultraviolet (UV) or infrared range, with a non-static visual effect.
 
