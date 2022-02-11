@@ -253,14 +253,14 @@ vec4 plane4(in vec4 ro, in vec4 rd, in vec4 origin, in mat4 invLor,in mat4 Einv,
 	if (t>0.0 || t>-distLim[0] || t<-distLim[1] ) {return vec4(MAX_DIST, 0.0, 0.0, 0.0);}
 	
 	float shade = mod(floor(uvwt.x/2.0) + floor(uvwt.y/2.0), 2.);
-        //vec3 red = wideSpectrum(dopplerShift(0.05, abs(uvwt_d.w)));	
+        vec3 red = wideSpectrum(dopplerShift(0.05, abs(uvwt_d.w)));	
 	vec3 green = wideSpectrum(dopplerShift(0.38, abs(uvwt_d.w)));
-	//vec3 blue = wideSpectrum(dopplerShift(0.71, abs(uvwt_d.w)));
+	vec3 blue = wideSpectrum(dopplerShift(0.71, abs(uvwt_d.w)));
 	//vec3 yellow = wideSpectrum(dopplerShift(0.22, abs(uvwt_d.w)));
 	//vec3 white = red+green+blue;
+        vec3 greenish = green + 0.3*red + 0.3*blue;
 
-
-	return vec4(t,shade*vec3(0.0, 0.0 , 0.0) + (1.0-shade)*green);
+	return vec4(t,shade*vec3(0.0, 0.0 , 0.0) + (1.0-shade)*greenish);
 }
 
 
@@ -295,29 +295,31 @@ distanceAndColor worldHit(in vec4 ro, in vec4 rd, in vec2 distLim, in float show
 
         mat4 tiltedOrientation = mat4( 1.0, 0.0, 0.0, 0.0,    0.0, 0.0, 1.0, 0.0,    0.0, 1.0, 0.0, 0.0,    0.0, 0.0, 0.0, 1.0 );
 
-	vec4 dc = box4( ro, rd, vec4(0.0, 0.0, 0.0, showTime), invBoost05, orientation , vec3(3.0, 3.0, 3.0), dlc.dLim );
+
+     
+	vec4 dc = box4( ro, rd, vec4(0.0, 0.0, 0.0, showTime), invBoost, orientation , vec3(2.0, 2.0, 2.0), dlc.dLim );
 	dlc = opU(dlc, dc.x, dc.yzw);
 
-	dc = box4( ro, rd, vec4(0.0, 0.0, 7.0, showTime), invBoost, orientation, vec3(3.0, 3.0, 3.0), dlc.dLim );
+	dc = box4( ro, rd, vec4(0.0, 0.0, 5.0, showTime), invBoost05, orientation, vec3(2.0, 2.0, 2.0), dlc.dLim );
 	dlc = opU(dlc, dc.x, dc.yzw);
 
-	dc = box4( ro, rd, vec4(0.0, 0.0, -7.0, showTime), invBoost099, orientation, vec3(3.0, 3.0, 3.0), dlc.dLim );
+	dc = box4( ro, rd, vec4(0.0, 0.0, -5.0, showTime), invBoost099, orientation, vec3(2.0, 2.0, 2.0), dlc.dLim );
 	dlc = opU(dlc, dc.x, dc.yzw);
         
         
-        dc = box4( ro, rd, vec4(0.0, -8.0, 0.0, showTime), noBoost, orientation, vec3(3.0, 3.0, 3.0), dlc.dLim );
+        dc = box4( ro, rd, vec4(0.0, -6.0, 0.0, showTime), noBoost, orientation, vec3(2.0, 2.0, 2.0), dlc.dLim );
 	dlc = opU(dlc, dc.x, dc.yzw);
 
-	dc = plane4(ro, rd, vec4(0.0, -11.0, 0.0, 0.0), noBoost, tiltedOrientation, dlc.dLim );	
+	dc = plane4(ro, rd, vec4(0.0, -8.0, 0.0, 0.0), noBoost, tiltedOrientation, dlc.dLim );	
 	dlc = opU(dlc, dc.x, dc.yzw);
 
-        dc = sphere4(ro, rd, vec4(0.0, 7.0, -7.0, showTime), invBoost, orientation, 4.0, dlc.dLim);
+        dc = sphere4(ro, rd, vec4(0.0, 0.0, -9.0, showTime), invBoost, orientation, 2.0, dlc.dLim);
         dlc = opU(dlc, dc.x, dc.yzw);
 
-        dc = sphere4(ro, rd,vec4(0.0, 7.0, 7.0, showTime), invBoost2, orientation, 3.0, dlc.dLim );
+        dc = sphere4(ro, rd,vec4(0.0, 0.0, 9.0, showTime), invBoost2, orientation, 2.0, dlc.dLim );
         dlc = opU(dlc, dc.x, dc.yzw);
 
-        dc = sphere4(ro, rd, vec4(0.0, -8.0, -7.0, showTime), noBoost, orientation, 3.0, dlc.dLim);
+        dc = sphere4(ro, rd, vec4(0.0, -6.0, -5.0, showTime), noBoost, orientation, 2.0, dlc.dLim);
         dlc = opU(dlc, dc.x, dc.yzw);
 
 		//dlc = distanceAndColor( vec2(0.0001, -dc.x), dc.yzw );
@@ -373,11 +375,11 @@ texture_coords = np.array([[0, 1], [0, 0], [1, 1], [1, 0]])
 
 quad['vTexCoords0'] = texture_coords
 quad['phi'] = 0.0
-quad['psy'] = 0.3
+quad['psy'] = 0.9
 quad['screen_ratio'] = 1.0
 quad['camLorentz'] = np.eye(4, dtype=np.float32)
 
-target_angles = np.array([0.0,0.3])
+target_angles = np.array([1.507,0.6])
 angvel = np.array([0.0, 0.0])
 time_factor = 10.0 #the same factor is hardcoded to the glsl file
 v_max = 0.99/20.0/2.0
@@ -404,6 +406,7 @@ print('---')
 camMessage(camLorentzSwitch, camKineticSwitch)
 print('press \'c\' to switch camera movement between instantaneous and kinetic ')
 print('press \'l\' to switch camera movement\'s Lorenzt Boost on or off')
+print('click and drag with the mouse pointer to rotate screen')
 print('---')
 
 def normalize(vec):
