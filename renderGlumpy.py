@@ -317,6 +317,9 @@ distanceAndColor worldHit(in vec4 ro, in vec4 rd, in vec2 distLim, in float show
         dc = sphere4(ro, rd,vec4(0.0, 7.0, 7.0, showTime), invBoost2, orientation, 3.0, dlc.dLim );
         dlc = opU(dlc, dc.x, dc.yzw);
 
+        dc = sphere4(ro, rd, vec4(0.0, -8.0, -7.0, showTime), noBoost, orientation, 3.0, dlc.dLim);
+        dlc = opU(dlc, dc.x, dc.yzw);
+
 		//dlc = distanceAndColor( vec2(0.0001, -dc.x), dc.yzw );
 	return dlc;
 }
@@ -380,6 +383,28 @@ time_factor = 10.0 #the same factor is hardcoded to the glsl file
 v_max = 0.99/20.0/2.0
 #max acceleration
 a_max = 1000.0
+camLorentzSwitch = True
+camKineticSwitch = True
+
+def camMessage(camLorentzSwitch, camKineticSwitch):
+    if camLorentzSwitch and camKineticSwitch:
+        print('Camera movement is kinetic and Lorentz boost is physical')
+    
+    if camLorentzSwitch and not camKineticSwitch:
+        print('Camera Lorentz boost is frozen, camera movement is kinetic but unphysical')
+
+    if not camLorentzSwitch: #and not camKineticSwitch:
+        print('Camrea Lorentz boost is off, camera movement is unphysical')
+
+#    if not camLorentzSwitch #and camKineticSwitch:
+#        print('Camera Lorenzt boost is off, camera movement is kinetic, but unphysical')
+
+
+print('---')
+camMessage(camLorentzSwitch, camKineticSwitch)
+print('press \'c\' to switch camera movement between instantaneous and kinetic ')
+print('press \'l\' to switch camera movement\'s Lorenzt Boost on or off')
+print('---')
 
 def normalize(vec):
     return np.array(vec)/np.linalg.norm(vec)
@@ -406,6 +431,7 @@ def sph2cartTangent(az, el,  dAz, dEl, r ):
 
 def kineticRotation(dt):
     global angvel
+    global camLorentzSwitch
     # print(app.clock.time.time())
     if (target_angles[0] != quad['phi']) or (target_angles[1]!=quad['psy']) or (angvel[0] != 0.0) or (angvel[1] != 0.0) :
         arc_diff = target_angles - np.array( [ float(quad['phi']), float(quad['psy']) ]  )
@@ -431,16 +457,27 @@ def kineticRotation(dt):
                 #print(vel)
                 #print(new_angular_velocity)
                 iS = inertialSystem( [0.0, 0.0, 0.0 , 0.0],  [1.0, 0.0, 0.0], [0.0, 0.0, 0.0],   vel  ) ##radius is 20.0
-                quad['camLorentz'] = iS.getLorentzOpenGL()
+                if camLorentzSwitch:
+                    quad['camLorentz'] = iS.getLorentzOpenGL()
+                else:
+                    quad['camLorentz'] = np.eye(4, dtype=np.float32)
             else:
                 quad['camLorentz'] = np.eye(4, dtype=np.float32)
 
+
+def directRotation(dt):
+    quad['phi'] = target_angles[0]
+    quad['psy'] = target_angles[1]
+    
 # Tell glumpy what needs to be done at each redraw
 @window.event
 def on_draw(dt):
     window.clear()
     quad['time']=app.clock.time.time()-t0
-    kineticRotation(dt)
+    if camKineticSwitch:
+        kineticRotation(dt)
+    else:
+        directRotation(dt)
     quad.draw(gl.GL_TRIANGLE_STRIP)
 
 
@@ -456,7 +493,16 @@ def on_key_press(symbol, modifiers):
     if symbol==100:
         target_angles[0] -= 0.01
 
-        #l=108, c= 99, t= 116
+    if symbol==108:
+        global camLorentzSwitch
+        camLorentzSwitch = not camLorentzSwitch
+        
+    if symbol==99:
+        global camKineticSwitch
+        camKineticSwitch = not camKineticSwitch
+        #'l'=108, 'c'= 99, 't'= 116
+
+    camMessage(camLorentzSwitch,camKineticSwitch )
         
 @window.event
 def on_mouse_drag(x,y,dx,dy,buttons):
