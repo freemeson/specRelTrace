@@ -20,10 +20,8 @@ fragment = """
     uniform float time;
     varying vec2 tex_coord0;
     uniform mat4 camLorentz;
-
-
-//Frozen time
-//#define TIME_DEFINITION camDist
+//use frozenTime to switch between periodic camera time and frozen time, this will be camDist
+    uniform int frozenTime;
 
 //Periodic time
 #define TIME_DEFINITION mod(10.0*time, 100.0)+camDist-50.0
@@ -434,8 +432,11 @@ void main (void){
 
 	ro = camLorentz*rotationXZ * rotationYZ* ro;
 	rd = camLorentz *rotationXZ * rotationYZ*rd;
-	float showTime= TIME_DEFINITION;
-
+        
+        float showTime = camDist;
+        if (frozenTime!=1) {
+          showTime= TIME_DEFINITION;
+        }
 	
 	dlc = worldHit(ro, rd, dlc.dLim,showTime);
 	
@@ -466,6 +467,7 @@ quad['phi'] = 0.0
 quad['psy'] = 0.9
 quad['screen_ratio'] = 1.0
 quad['camLorentz'] = np.eye(4, dtype=np.float32)
+quad['frozenTime'] = np.int(1)
 
 target_angles = np.array([np.pi/2.0,0.0])
 angvel = np.array([0.0, 0.0])
@@ -477,6 +479,11 @@ camLorentzSwitch = True
 camKineticSwitch = True
 
 def camMessage(camLorentzSwitch, camKineticSwitch):
+    if quad['frozenTime']:
+        print('Camera time is frozen at camera distance to origin')
+    else:
+        print('Camera time is periodic')
+        
     if camLorentzSwitch and camKineticSwitch:
         print('Camera movement is kinetic and Lorentz boost is physical')
     
@@ -489,13 +496,19 @@ def camMessage(camLorentzSwitch, camKineticSwitch):
 #    if not camLorentzSwitch #and camKineticSwitch:
 #        print('Camera Lorenzt boost is off, camera movement is kinetic, but unphysical')
 
+def printHelp():
+    print('-------------------------------------------------------------------------')
+    camMessage(camLorentzSwitch, camKineticSwitch)
+    print('press \'c\' to switch camera movement between instantaneous and kinetic ')
+    print('press \'l\' to switch camera movement\'s Lorenzt Boost on or off')
+    print('press \'t\' to switch camera time between frozen and periodic')
+    print('click and drag with the mouse pointer to rotate screen')
 
-print('---')
-camMessage(camLorentzSwitch, camKineticSwitch)
-print('press \'c\' to switch camera movement between instantaneous and kinetic ')
-print('press \'l\' to switch camera movement\'s Lorenzt Boost on or off')
-print('click and drag with the mouse pointer to rotate screen')
-print('---')
+    print('\npress \'h\' for this help message')
+    print('-------------------------------------------------------------------------')
+
+
+printHelp()
 
 def normalize(vec):
     return np.array(vec)/np.linalg.norm(vec)
@@ -591,7 +604,11 @@ def on_key_press(symbol, modifiers):
     if symbol==99:
         global camKineticSwitch
         camKineticSwitch = not camKineticSwitch
+    if symbol==116:
+        quad['frozenTime'] = not quad['frozenTime']
         #'l'=108, 'c'= 99, 't'= 116
+    if symbol==104:
+        printHelp()
 
     camMessage(camLorentzSwitch,camKineticSwitch )
         
