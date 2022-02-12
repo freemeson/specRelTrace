@@ -139,7 +139,80 @@ vec3 wideSpectrum2(float hue) {
 } */
 
 
+vec4 rollingSphere4(in vec4 ro, in vec4 rd, in vec4 origin, in mat4 invLor, in mat4 Einv, float radius, in float equatorSpeed, in vec2 distLim) {
+	//origin = vec4(0.0, 0.0, 0.0, 0.0);
+    vec4 rayorig = invLor*(ro - origin);
+	vec4 raydir = invLor*rd;
+	
+	vec4 sptq_o = Einv * rayorig;
+	vec4 sptq_d = Einv * raydir;
+   
+	//float b = dot(rayorig.xyz , normalize(raydir.xyz));
 
+	vec3 ray_o = sptq_o.xyz;
+	float len = sqrt(dot(sptq_d.xyz,sptq_d.xyz));
+	vec3 ray_d = sptq_d.xyz/len;
+	float b = dot(ray_o, ray_d);	
+	//radius = 9.0;
+	float c = dot(ray_o, ray_o)- radius*radius;
+   float discr = b*b - c;
+
+
+   
+   if (discr < 0.0) {return vec4(MAX_DIST, 1.0, 0.0, 0.0); }
+
+
+   float t = -b+sqrt(discr);
+   float ti = t/len; //assuming that the 4-vector lenght is rd*rd is zero, ligth-like
+   //the real time is t_Real = t*sptq_d.w, usually just a negative sign
+
+   if (-ti < distLim[0] || -ti > distLim[1]) {return vec4(MAX_DIST, 0.0, 1.0, 0.0);}
+
+//	return vec4(0,1.0/t, 1.0, 1.0 );
+	//return vec4(-t, 1.0, 1.0, 1.0);
+
+   float myTime = sptq_o.w+sptq_d.w*t;
+
+
+   vec3 ri = ray_o + t*ray_d;
+   float phi=atan(ri.z, ri.x);
+   float theta = acos((ri.y)/radius);
+
+   vec2 rotArrow = vec2(ri.x, ri.z);
+   float rotRadius = sqrt(dot(rotArrow, rotArrow));
+   vec2 rotVel = equatorSpeed*vec2(-ri.z, ri.x)/radius;
+
+
+   phi += myTime*equatorSpeed/radius; 
+   
+   // ***** lorentz boost in 2+1 dimensions
+
+   float beta = equatorSpeed*rotRadius/radius;
+   float gamma = 1.0/sqrt(1.0-beta*beta);
+   vec2 gv = gamma*rotVel;
+   float gm1 = gamma - 1.0;
+   /*mat3 lorentzBoostXZW = mat3( 1.0+gm1*rotVel.x*rotVel.x, gm1*rotVel.x*rotVel.y , -gv.x,
+                                gm1*rotVel.x*rotVel.y,1.0+gm1*rotVel.y*rotVel.y , -gv.y,
+                                -gv.x ,-gv.y , gamma);
+   vec3 light2D = vec3(sptq_d.x, sptq_d.z, sptq_d.w);
+   vec3 incidentLight2d = lorentzBoostXZW*light2D;
+   float extraDoppler = incidentLight.w; */
+   vec4 lorentzLastColumn = vec4( -gv.x, 0.0, -gv.y, gamma );
+   float extraDoppler = sptq_d.w/dot(lorentzLastColumn, sptq_d);
+   
+   //extraDoppler = 1.0;
+
+   float shade = mod(floor(4.0*radius*phi/6.283) + floor(2.0*radius*theta/3.1415), 2.);
+
+	vec3 red = wideSpectrum(dopplerShift(0.05, abs(extraDoppler)));
+	
+	vec3 green = wideSpectrum(dopplerShift(0.38, abs(extraDoppler)));
+	vec3 blue = wideSpectrum(dopplerShift(0.71, abs(extraDoppler)));
+	vec3 yellow = wideSpectrum(dopplerShift(0.22, abs(extraDoppler)));
+
+   vec3 color = shade*vec3(0.0, 0.0, 0.0) + (1.0-shade)*yellow;
+   return vec4(ti, color);
+}
 
 vec4 sphere4(in vec4 ro, in vec4 rd, in vec4 origin, in mat4 invLor, in mat4 Einv, float radius, in vec2 distLim) {
 	//origin = vec4(0.0, 0.0, 0.0, 0.0);
@@ -287,6 +360,11 @@ distanceAndColor worldHit(in vec4 ro, in vec4 rd, in vec2 distLim, in float show
           0.        ,  1.        ,  0.        ,  0.        ,
           0.        ,  0.        ,  1.        ,  0.        ,
           49.74874372,  0.        ,  0.        , 49.39232364);
+
+        mat4 invBoost01 = mat4(1.010101 , 0.       , 0.       , 0.1010101,
+       0.       , 1.       , 0.       , 0.       ,
+       0.       , 0.       , 1.       , 0.       ,
+       0.1010101, 0.       , 0.       , 1.0050884   );
 	
         mat4 orientation = mat4( 1.0, 0.0, 0.0, 0.0,
 		    0.0, 1.0, 0.0, 0.0,  
@@ -294,6 +372,10 @@ distanceAndColor worldHit(in vec4 ro, in vec4 rd, in vec2 distLim, in float show
             0.0, 0.0, 0.0, 1.0 );
 
         mat4 tiltedOrientation = mat4( 1.0, 0.0, 0.0, 0.0,    0.0, 0.0, 1.0, 0.0,    0.0, 1.0, 0.0, 0.0,    0.0, 0.0, 0.0, 1.0 );
+        mat4 tiltedOrientationRoll = mat4( 1.0, 0.0, 0.0, 0.0,    
+                                           0.0, 0.0, -1.0, 0.0,    
+                                           0.0, -1.0, 0.0, 0.0,    
+                                           0.0, 0.0, 0.0, 1.0 );
 
 
      
@@ -321,6 +403,12 @@ distanceAndColor worldHit(in vec4 ro, in vec4 rd, in vec2 distLim, in float show
 
         dc = sphere4(ro, rd, vec4(0.0, -6.0, -5.0, showTime), noBoost, orientation, 2.0, dlc.dLim);
         dlc = opU(dlc, dc.x, dc.yzw);
+
+        dc = rollingSphere4(ro, rd, vec4(0.0, -6.0, -10.0, showTime), noBoost, orientation, 2.0, 0.1, dlc.dLim);
+        dlc = opU(dlc, dc.x, dc.yzw);
+        dc = rollingSphere4(ro, rd, vec4(0.0, -6.0, 10.0, showTime), invBoost05, tiltedOrientationRoll, 2.0, 0.5, dlc.dLim);
+        dlc = opU(dlc, dc.x, dc.yzw);
+
 
 		//dlc = distanceAndColor( vec2(0.0001, -dc.x), dc.yzw );
 	return dlc;
@@ -379,7 +467,7 @@ quad['psy'] = 0.9
 quad['screen_ratio'] = 1.0
 quad['camLorentz'] = np.eye(4, dtype=np.float32)
 
-target_angles = np.array([1.507,0.6])
+target_angles = np.array([np.pi/2.0,0.0])
 angvel = np.array([0.0, 0.0])
 time_factor = 10.0 #the same factor is hardcoded to the glsl file
 v_max = 0.99/20.0/2.0
@@ -475,7 +563,7 @@ def directRotation(dt):
 # Tell glumpy what needs to be done at each redraw
 @window.event
 def on_draw(dt):
-    window.clear()
+    #window.clear()
     quad['time']=app.clock.time.time()-t0
     if camKineticSwitch:
         kineticRotation(dt)
@@ -513,7 +601,7 @@ def on_mouse_drag(x,y,dx,dy,buttons):
     #print(window.width)
     target_angles[0] += 3*dx/window.width
     target_angles[1] += 3*dy/window.height
-    target_angles[1] = max(-0.1, min(0.9, target_angles[1]))
+    target_angles[1] = max(-0.1, min(1.5, target_angles[1]))
     #quad['phi'] += 3*dx/window.width
     #quad['psy'] += 3*dy/window.height
     #quad['psy'] = max(-0.1, min(0.9, quad['psy']))
