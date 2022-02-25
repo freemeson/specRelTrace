@@ -422,6 +422,17 @@ vec4 moon4(in vec4 ro, in vec4 rd , in float radius,  in vec2 distLim   ) {
    return sphere4(ro , rd, vec4(moonPosition.xyz, ro.w + moonPosition.w), moonInvLorentz , identity, radius, distLim );
 }
 
+
+vec4 planetMoon4(in vec4 ro, in vec4 rd , vec4 origin, in float radius,  in vec2 distLim   ) {
+   mat4 identity = mat4( 1.0, 0.0, 0.0, 0.0, 
+                         0.0, 1.0, 0.0, 0.0, 
+                         0.0, 0.0, 1.0, 0.0, 
+                         0.0, 0.0, 0.0, 1.0);
+   
+   vec4 boostedRo = moonInvLorentz*ro;
+   return sphere4(ro , rd, vec4(moonPosition.xyz, ro.w + moonPosition.w), planetLorentz*moonInvLorentz , identity, radius, distLim );
+}
+
 vec4 box4rev(in vec4 ro, in vec4 rd, in vec4 origin, in mat4 invLor, in mat4 Einv, in vec3 halfSizes, in vec2 tor, in vec2 distLim  ) {
 	
        	vec4 rayorig = invLor*(ro - origin);
@@ -738,8 +749,10 @@ distanceAndColor testWorldHit(in vec4 ro, in vec4 rd, in vec2 distLim, in float 
         
        /*dc = cylinder4(ro, rd, vec4(10.0, 0.0, 0.0, showTime), noBoost, tiltedOrientation, 3.0, 3.0, 0.2, dlc.dLim);
         dlc = opU(dlc, dc.x, dc.yzw);*/
-        dc = moon4(ro, rd, 1.0, dlc.dLim);
+
+        dc = planetMoon4(ro, rd, vec4(0.0, 0.0, 0.0, showTime), 1.0, dlc.dLim);
         dlc = opU(dlc, dc.x, dc.yzw);
+
         dc = sphere4(ro, rd, vec4(0.0, 0.0, 0.0, showTime), noBoost, orientation, 1.0, dlc.dLim);
         /*dc = box4rev(ro, rd, vec4(0.0, 0.0, 0.0, showTime), noBoost, orientation, vec3(5.0, 5.0, 5.0),vec2(4.0, 1.0), dlc.dLim);*/
         dlc = opU(dlc, dc.x, dc.yzw);
@@ -883,7 +896,7 @@ quad['phi'] = 0.0
 quad['psy'] = 0.9
 quad['screen_ratio'] = 1.0
 quad['camLorentz'] = camLorentz_g
-quad['planetLorentz'] = planetLorentzIS_g.getInverseLorentzOpenGL()
+quad['planetLorentz'] = planetLorentzIS_g.getInvLorentzOpenGL()
 quad['frozenTime'] = np.int(1)
 
 target_angles = np.array([np.pi/2.0,0.0])
@@ -979,6 +992,27 @@ def moonPosition(camPhi, camPsy, R, omega, time):
     quad['moonPosition'] = pos - vel4*timeShift
     quad['moonInvLorentz'] = moonInvLor
 
+def freeMoonPosition(camPhi, camPsy, R, omega, absTime):
+    time = np.mod( absTime , 10.0  ) - 5.0
+    cameraPos3D = sph2cart( camPhi, camPsy, 20.0 )[[1,2,0]] #GL coordinates are swapped
+    global camLorentz_g
+    global planetLorentzIS_g
+    camDisplacement = -10.0*time*np.array(planetLorentzIS_g.velocity)
+    cam4D = np.array( list( cameraPos3D + camDisplacement ) + [10.0*time]   )
+    
+    t_moon = emissionTime(omega, R, planetLorentzIS_g.getInvLorentzOpenGL().dot(cam4D) )
+    vel = np.array( [omega*R*np.cos(omega*t_moon),-omega*R*np.sin(omega*t_moon), 0.0]  )*0.9
+    vel4 = np.array([0.0, 0.0 ,0.0,-1.0])
+    pos = np.array( [R*np.sin(omega*t_moon), R*np.cos(omega*t_moon) , 0.0, 0.0]  )
+    iS = inertialSystem( [0.0, 0.0, 0.0 , 0.0],  [1.0, 0.0, 0.0], [0.0, 1.0, 0.0],   vel  )
+    moonInvLor = iS.getInvLorentzOpenGL()
+    moonLor = iS.getLorentzOpenGL()
+    cam4D[3] = 20.0 #
+    camAberration = (cam4D)#( camLorentz_g.dot(cam4D) )
+    
+    timeShift = np.linalg.norm(camAberration[0:3]-pos[0:3])
+    quad['moonPosition'] = pos- np.append(camDisplacement,0.0) - vel4*timeShift
+    quad['moonInvLorentz'] = moonInvLor
     
 
 def kineticRotation(dt):
@@ -1035,8 +1069,9 @@ def on_draw(dt):
         kineticRotation(dt)
     else:
         directRotation(dt)
-    moonPosition(float(quad['phi']), float(quad['psy']), 3.0, 0.2, float(quad['time']))
-    
+    #moonPosition(float(quad['phi']), float(quad['psy']), 3.0, 0.2, float(quad['time']))
+    freeMoonPosition(float(quad['phi']), float(quad['psy']), 2.0, 0.3, float(quad['time']))
+
     quad.draw(gl.GL_TRIANGLE_STRIP)
 
 
