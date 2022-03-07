@@ -151,37 +151,43 @@ class planetAndMoons :
         self.createVariableNames()
 
     def createVariableNames(self):
-        starVars = namedtuple('starVars',['planetPos', 'planetLor', 'moonPos', 'moonLor'])
+        starVars = namedtuple('starVars',['planetPos', 'planetLor', 'planetMap',
+        'moonPos', 'moonLor','moonMap'])
         self.varNames = starVars(
             "planet"+self.planet_name+"position",
             "planet"+self.planet_name+"invLor",
+            "planet"+self.planet_name+"texture",
             [ "planet"+self.planet_name+"Moonposition"+str(i) for i in range(0,len(self.moon_RR))],
-            ["planet"+self.planet_name+"MooninvLor"+str(i) for i in range(0,len(self.moon_RR))]
+            ["planet"+self.planet_name+"MooninvLor"+str(i) for i in range(0,len(self.moon_RR))],
+            ["planet"+self.planet_name+"Moontexture"+str(i) for i in range(0,len(self.moon_RR))]
         )
 
     def getVariableDeclarations(self):
         uniVec4 = "uniform vec4 "
         uniMat4 = "uniform mat4 "
+        uniMap = "uniform sampler2D "
         end = ";\n"
         declarations = uniVec4 + self.varNames.planetPos + end + \
-            uniMat4 + self.varNames.planetLor + end
+            uniMat4 + self.varNames.planetLor + end + \
+            uniMap + self.varNames.planetMap + end
 
         for i in range(len(self.varNames.moonPos)):
             declarations+=uniVec4 + self.varNames.moonPos[i] + end + \
-                uniMat4 + self.varNames.moonLor[i] + end
+                uniMat4 + self.varNames.moonLor[i] + end + \
+                uniMap + self.varNames.moonMap[i] + end
         return declarations
 
     def getRayTraceCalls(self):
         moonFcn = "planetAndMoons4"
         end = ";\n"
-        def callFcn(pos, lor, radius):
-            myCalls = "dc = " + moonFcn + "(ro, rd, "+ pos +","+lor + ","+str(radius)+" ,dlc.dLim)" + end + \
+        def callFcn(pos, lor, map, radius):
+            myCalls = "dc = " + moonFcn + "(ro, rd, "+ pos +","+lor + ","+ map +","+str(radius) + " ,dlc.dLim)" + end + \
                 "dlc = opU(dlc, dc.x, dc.yzw)" + end
             return myCalls
 
-        myCalls = callFcn(self.varNames.planetPos,self.varNames.planetLor , self.planet_Radius)
+        myCalls = callFcn(self.varNames.planetPos,self.varNames.planetLor, self.varNames.planetMap , self.planet_Radius)
         for i in range(len(self.varNames.moonPos)):
-            myCalls+=callFcn(self.varNames.moonPos[i],self.varNames.moonLor[i],self.moon_Radius[i] )
+            myCalls+=callFcn(self.varNames.moonPos[i],self.varNames.moonLor[i],self.varNames.moonMap[i], self.moon_Radius[i] )
         return myCalls
 
 
