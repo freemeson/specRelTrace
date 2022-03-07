@@ -119,6 +119,51 @@ vec4 sphere4(in vec4 ro, in vec4 rd, in vec4 origin, in mat4 invLor, in mat4 Ein
 }
 
 
+vec4 sphereMap4(in vec4 ro, in vec4 rd, in vec4 origin, in mat4 invLor, in mat4 Einv, float radius, in sampler2D map, in vec2 distLim) {
+    vec4 rayorig = invLor*(ro - origin);
+	vec4 raydir = invLor*rd;
+
+	vec4 sptq_o = Einv * rayorig;
+	vec4 sptq_d = Einv * raydir;
+
+
+	vec3 ray_o = sptq_o.xyz;
+	float len = sqrt(dot(sptq_d.xyz,sptq_d.xyz));
+	vec3 ray_d = sptq_d.xyz/len;
+	float b = dot(ray_o, ray_d);
+	float c = dot(ray_o, ray_o)- radius*radius;
+   float discr = b*b - c;
+
+
+
+   if (discr < 0.0) {return vec4(MAX_DIST, 1.0, 0.0, 0.0); }
+
+
+   float t = -b+sqrt(discr);
+   float ti = t/len; //assuming that the 4-vector lenght is rd*rd is zero, ligth-like
+
+   if (-ti < distLim[0] || -ti > distLim[1]) {return vec4(MAX_DIST, 0.0, 1.0, 0.0);}
+
+//	return vec4(0,1.0/t, 1.0, 1.0 );
+	//return vec4(-t, 1.0, 1.0, 1.0);
+   //the real time is t_Real = t*sptq_d.w, usually just a negative sign
+   vec3 ri = ray_o + t*ray_d;
+   float phi=atan(ri.z, ri.x);
+   float theta = acos((ri.y)/radius);
+
+   float shade = mod(floor(4.0*radius*phi/6.283) + floor(2.0*radius*theta/3.1415), 2.);
+
+	vec3 red = wideSpectrum(dopplerShift(0.05, abs(sptq_d.w)));
+
+	vec3 green = wideSpectrum(dopplerShift(0.38, abs(sptq_d.w)));
+	vec3 blue = wideSpectrum(dopplerShift(0.71, abs(sptq_d.w)));
+	vec3 yellow = wideSpectrum(dopplerShift(0.22, abs(sptq_d.w)));
+
+   vec3 color = shade*vec3(0.0, 0.0, 0.0) + (1.0-shade)*yellow;
+   return vec4(ti, color);
+}
+
+
 vec4 torus4( in vec4 ro4, in vec4 rd4, in vec4 origin, in mat4 invLor, in mat4 Einv, vec2 tor, in vec2 distLim ){
     vec4 rayorig = invLor*(ro4 - origin);
     vec4 raydir = invLor*rd4;
