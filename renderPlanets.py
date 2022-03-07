@@ -1,4 +1,4 @@
-from glumpy import app, gloo, gl
+from glumpy import app, gloo, gl, data
 #from pyglet.window import key
 from inertialSystem import *
 from emissionTimeSolver import *
@@ -59,13 +59,13 @@ vec4 planetMoon4(in vec4 ro, in vec4 rd , vec4 origin, in float radius,  in vec2
    return sphere4(ro , rd, vec4(moonPosition.xyz, ro.w + moonPosition.w), planetLorentz*moonInvLorentz , identity, radius, distLim );
 }
 
-vec4 planetAndMoons4(in vec4 ro, in vec4 rd , in vec4 origin,in mat4 invLor, in float radius,  in vec2 distLim   ) {
-   mat4 identity = mat4( 1.0, 0.0, 0.0, 0.0,
-                         0.0, 1.0, 0.0, 0.0,
+vec4 planetAndMoons4(in vec4 ro, in vec4 rd , in vec4 origin,in mat4 invLor, in sampler2D map, in float radius, in vec2 distLim   ) {
+   mat4 tilted = mat4( 1.0, 0.0, 0.0, 0.0,
                          0.0, 0.0, 1.0, 0.0,
+                         0.0, 1.0, 0.0, 0.0,
                          0.0, 0.0, 0.0, 1.0);
 
-   return sphere4(ro , rd, origin, invLor , identity, radius, distLim );
+   return sphereMap4(ro , rd, origin, invLor , tilted, radius, map, distLim );
 }
 
 
@@ -252,6 +252,11 @@ quad['screen_ratio'] = 1.0
 quad['camLorentz'] = camLorentz_g
 quad['planetLorentz'] = planetLorentzIS_g.getInvLorentzOpenGL()
 quad['frozenTime'] = np.int(1)
+quad[plm.varNames.planetMap] = data.get('/Users/kovesarki/src/specRelTrace/maps/jupiter_PIA02864.jpeg')
+quad[plm.varNames.moonMap[0]] = data.get("/Users/kovesarki/src/specRelTrace/maps/3840px-Io_from_Galileo_and_Voyager_missions.jpeg")
+quad[plm.varNames.moonMap[1]] = data.get("/Users/kovesarki/src/specRelTrace/maps/3840px-Io_from_Galileo_and_Voyager_missions.jpeg")
+quad[plm.varNames.moonMap[2]] = data.get("/Users/kovesarki/src/specRelTrace/maps/3840px-Io_from_Galileo_and_Voyager_missions.jpeg")
+
 
 target_angles = np.array([np.pi/2.0,0.0])
 angvel = np.array([0.0, 0.0])
@@ -387,7 +392,7 @@ def tiltedRevolvingPlanetAndMoonsPosition(camPhi, camPsy, R, omega, absTime):
         quad[starPos] = plm.E.dot(iS.origin)
         quad[starLor] = plm.E.dot(iS.getLorentzOpenGL())
         
-    time = np.mod( absTime , 10.0  ) - 5.0
+    time = absTime #np.mod( absTime , 10.0  ) - 5.0
     cameraPos3D = sph2cart( camPhi, camPsy, 20.0 )[[1,2,0]] #GL coordinates are swapped
 
     #camDisplacement = -10.0*time*np.array(planetLorentzIS_g.velocity)
