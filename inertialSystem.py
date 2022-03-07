@@ -16,7 +16,7 @@ class inertialSystem:
     def __init__(self,origin, eu, ev,v,beta=None):
         self.setVierBein(origin, eu, ev)
         self.setLorentzBoost(v,beta)
-        
+
     def setVierBein(self,origin, eu, ev):
         self.origin = self._expandVector_(np.array(origin))
         self.eu = self._expandVector_(normalize(eu))
@@ -24,14 +24,14 @@ class inertialSystem:
         self.enorm = self._expandVector_(np.cross(eu, ev))
         self.E = np.array( [[1,0,0,0], self.eu, self.ev, self.enorm ] )
         self.Einv = np.linalg.inv(self.E)
-        
+
     def setLorentzBoost(self, v, beta=None):
         if np.linalg.norm(v) ==0:
             self.velocity=np.array([0,0,0])
             self.beta = 0
             self.direction=None
-        else:    
-            
+        else:
+
             if beta==None:
                 if np.linalg.norm(v)>=1:
                     print('Invalid v>c, using beta=0.5')
@@ -77,8 +77,8 @@ class inertialSystem:
     @staticmethod
     def matrixGLView(mat4):
         return np.array(mat4[ [1,2,3,0],:  ][:,[1,2,3,0]], dtype = np.float32)
-        
-    @staticmethod  
+
+    @staticmethod
     def _expandVector_(vec):
         if len(vec) == 3:
             return np.array([0]+list(vec))
