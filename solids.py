@@ -1,4 +1,6 @@
 solids = """
+#define M_PI 3.1415926535897932384626433832795
+
 vec4 rollingSphere4(in vec4 ro, in vec4 rd, in vec4 origin, in mat4 invLor, in mat4 Einv, float radius, in float equatorSpeed, in vec2 distLim) {
 	//origin = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 rayorig = invLor*(ro - origin);
@@ -148,18 +150,19 @@ vec4 sphereMap4(in vec4 ro, in vec4 rd, in vec4 origin, in mat4 invLor, in mat4 
 	//return vec4(-t, 1.0, 1.0, 1.0);
    //the real time is t_Real = t*sptq_d.w, usually just a negative sign
    vec3 ri = ray_o + t*ray_d;
-   float phi=atan(ri.z, ri.x);
-   float theta = acos((ri.y)/radius);
+   float phi=atan(ri.z, ri.x)/M_PI/2.0+0.5;
+   float theta = acos((ri.y)/radius)/M_PI;
 
-   float shade = mod(floor(4.0*radius*phi/6.283) + floor(2.0*radius*theta/3.1415), 2.);
+vec4 txcolor = texture2D(map, vec2(phi, theta));
+  //float shade = mod(floor(4.0*radius*phi/6.283) + floor(2.0*radius*theta/3.1415), 2.);
 
 	vec3 red = wideSpectrum(dopplerShift(0.05, abs(sptq_d.w)));
 
 	vec3 green = wideSpectrum(dopplerShift(0.38, abs(sptq_d.w)));
 	vec3 blue = wideSpectrum(dopplerShift(0.71, abs(sptq_d.w)));
-	vec3 yellow = wideSpectrum(dopplerShift(0.22, abs(sptq_d.w)));
+//	vec3 yellow = wideSpectrum(dopplerShift(0.22, abs(sptq_d.w)));
 
-   vec3 color = shade*vec3(0.0, 0.0, 0.0) + (1.0-shade)*yellow;
+   vec3 color = txcolor.r*red + txcolor.g*green + txcolor.b*blue;
    return vec4(ti, color);
 }
 
