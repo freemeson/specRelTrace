@@ -24,11 +24,32 @@ planetTilt = np.array( [[1.0, 0.0, 0.0, 0.0],
                         [0.0, 1.0, 0.0, 0.0],
                         [0.0, 0.0, 0.0, 1.0]])
 
-plm = planetAndMoons([0.0, 0.0, 0.0, 0.0], 20.0, 2.0, 0.002,   [3.0,6.0,9.0], [1.0, 1.0, 1.0], [0.2,0.10,0.06], planetTilt, "Testunus" )
+plm = planetAndMoons([0.0, 0.0, 0.0, 0.0], 20.0, 2.0, 0.002,   [3.0,4.25,6.0,12], [0.3, 0.3, 0.5,0.5], [0.2,0.1,0.05, 0.025], planetTilt, "Testunus" )
 
 
-fragment = plm.getVariableDeclarations() + fragmentHeader + doppler + solids + """
+fragment = """uniform sampler2D sunTexture; 
+uniform sampler2D skyTexture;
+""" + plm.getVariableDeclarations() + fragmentHeader + doppler + solids + """
 
+
+vec4 sky4(in vec4 rd) {
+   float len = sqrt(dot(rd.xyz,rd.xyz));
+
+   float phi=atan(rd.z, rd.x)/M_PI/2.0+0.5;
+   float theta = acos((rd.y)/len  )/M_PI;
+   vec4 txcolor = texture2D(skyTexture, vec2(phi, theta));
+  	vec3 red = wideSpectrum(dopplerShift(0.05, abs(rd.w)));
+
+	vec3 green = wideSpectrum(dopplerShift(0.38, abs(rd.w)));
+	vec3 blue = wideSpectrum(dopplerShift(0.71, abs(rd.w)));
+//	vec3 yellow = wideSpectrum(dopplerShift(0.22, abs(rd.w)));
+
+   vec3 color = txcolor.r*red + txcolor.g*green + txcolor.b*blue;
+   
+   return vec4(-1e4, color);
+
+  
+}
 
 vec4 planet4(in vec4 ro, in vec4 rd , in float radius,  in vec2 distLim   ) {
    mat4 identity = mat4( 1.0, 0.0, 0.0, 0.0,
@@ -88,11 +109,13 @@ distanceAndColor testWorldHit(in vec4 ro, in vec4 rd, in vec2 distLim, in float 
 
         mat4 tiltedOrientation = mat4( 1.0, 0.0, 0.0, 0.0,    0.0, 0.0, 1.0, 0.0,    0.0, 1.0, 0.0, 0.0,    0.0, 0.0, 0.0, 1.0 );
 
-        vec4 dc = box4( ro, rd, vec4(0.0, -6.0, 0.0, showTime), noBoost, orientation, vec3(2.0, 2.0, 2.0), dlc.dLim );
-	dlc = opU(dlc, dc.x, dc.yzw);
+        vec4 dc = sphereMap4(ro, rd, vec4(0.0, 0.0, 0.0, showTime), noBoost, orientation, 5.0, sunTexture, dlc.dLim);
+        dlc = opU(dlc, dc.x, dc.yzw);
+//        vec4 dc = box4( ro, rd, vec4(0.0, -6.0, 0.0, showTime), noBoost, orientation, vec3(2.0, 2.0, 2.0), dlc.dLim );
+//	dlc = opU(dlc, dc.x, dc.yzw);
 
-	dc = plane4(ro, rd, vec4(0.0, -8.0, 0.0, 0.0), noBoost, tiltedOrientation, dlc.dLim );
-	dlc = opU(dlc, dc.x, dc.yzw); 
+//	dc = plane4(ro, rd, vec4(0.0, -8.0, 0.0, 0.0), noBoost, tiltedOrientation, dlc.dLim );
+//	dlc = opU(dlc, dc.x, dc.yzw); 
 """ 
 
 fragment += plm.getRayTraceCalls() + """
@@ -105,7 +128,7 @@ fragment += plm.getRayTraceCalls() + """
 //        dc = planetMoon4(ro, rd, vec4(0.0, 0.0, 0.0, showTime), 1.0, dlc.dLim);
 //        dlc = opU(dlc, dc.x, dc.yzw);
         
-        dc = sphere4(ro, rd, vec4(0.0, 0.0, 0.0, showTime), noBoost, orientation, 5.0, dlc.dLim);
+        
         /*dc = box4rev(ro, rd, vec4(0.0, 0.0, 0.0, showTime), noBoost, orientation, vec3(5.0, 5.0, 5.0),vec2(4.0, 1.0), dlc.dLim);*/
         dlc = opU(dlc, dc.x, dc.yzw);
         return dlc;
@@ -219,7 +242,13 @@ dlc = testWorldHit(ro, rd, dlc.dLim,showTime);
 
 	//gl_FragColor = vec4(dc.yzw,1.0);
 	//gl_FragColor = vec4(0.5,0.5,0.5,1.0);
-   gl_FragColor = vec4(dlc.color*exp(-0.016*(dlc.dLim.y-camDist)),1.0);//*frag_color;
+   if (dlc.dLim.y < 499.9) {
+       gl_FragColor = vec4(dlc.color*exp(-0.016*(dlc.dLim.y-camDist)),1.0);//*frag_color;
+   } else
+   {  
+      gl_FragColor = vec4( sky4(rd).yzw,1.0    );
+   }
+
 }
 
 
@@ -254,9 +283,11 @@ quad['planetLorentz'] = planetLorentzIS_g.getInvLorentzOpenGL()
 quad['frozenTime'] = np.int(1)
 quad[plm.varNames.planetMap] = data.get('/Users/kovesarki/src/specRelTrace/maps/jupiter_PIA02864.jpeg')
 quad[plm.varNames.moonMap[0]] = data.get("/Users/kovesarki/src/specRelTrace/maps/3840px-Io_from_Galileo_and_Voyager_missions.jpeg")
-quad[plm.varNames.moonMap[1]] = data.get("/Users/kovesarki/src/specRelTrace/maps/3840px-Io_from_Galileo_and_Voyager_missions.jpeg")
-quad[plm.varNames.moonMap[2]] = data.get("/Users/kovesarki/src/specRelTrace/maps/3840px-Io_from_Galileo_and_Voyager_missions.jpeg")
-
+quad[plm.varNames.moonMap[1]] = data.get("/Users/kovesarki/src/specRelTrace/maps/europa-IMGUR.jpeg")
+quad[plm.varNames.moonMap[2]] = data.get("/Users/kovesarki/src/specRelTrace/maps/Map_of_Ganymede_by_Björn_Jónsson.jpeg")
+quad[plm.varNames.moonMap[3]] = data.get("/Users/kovesarki/src/specRelTrace/maps/callisto_4k_map_by_jcp_johncarlo_dc4fjip-fullview.jpeg")
+quad['sunTexture'] = data.get("/Users/kovesarki/src/specRelTrace/maps/8k_sun.jpeg")
+quad['skyTexture'] = data.get("/Users/kovesarki/src/specRelTrace/maps/starmap_4k.jpeg")
 
 target_angles = np.array([np.pi/2.0,0.0])
 angvel = np.array([0.0, 0.0])
