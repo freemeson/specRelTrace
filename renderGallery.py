@@ -196,8 +196,8 @@ void main (void){
           showTime= TIME_DEFINITION;
         }
 
-	//dlc = worldHit(ro, rd, dlc.dLim,showTime);
-dlc = testWorldHit(ro, rd, dlc.dLim,showTime);
+	dlc = worldHit(ro, rd, dlc.dLim,showTime);
+        //dlc = testWorldHit(ro, rd, dlc.dLim,showTime);
 
 	//gl_FragColor = vec4(dc.yzw,1.0);
 	//gl_FragColor = vec4(0.5,0.5,0.5,1.0);
@@ -221,9 +221,9 @@ quad['position'] = (-1,-1),   (-1,+1),   (+1,-1),   (+1,+1)
 
 texture_coords = np.array([[0, 1], [0, 0], [1, 1], [1, 0]])
 
-planetLorentzIS_g = inertialSystem( [0.0, 0.0, 0.0 , 0.0],  [1.0, 0.0, 0.0], [0.0, 0.0, 0.0],   (0.0, 0.0, 0.0)  )
+#planetLorentzIS_g = inertialSystem( [0.0, 0.0, 0.0 , 0.0],  [1.0, 0.0, 0.0], [0.0, 0.0, 0.0],   (0.0, 0.0, 0.0)  )
 
-planetMoonSystem = planetMoon([0.0, 0.0, 0.0, 0.0], 3.0, 1.0, 0.01,   1.0, 3.0, 0.4 )
+#planetMoonSystem = planetMoon([0.0, 0.0, 0.0, 0.0], 3.0, 1.0, 0.01,   1.0, 3.0, 0.4 )
 
 camLorentz_g = np.eye(4, dtype=np.float32)
 quad['vTexCoords0'] = texture_coords
@@ -232,7 +232,7 @@ quad['phi'] = 0.0
 quad['psy'] = 0.9
 quad['screen_ratio'] = 1.0
 quad['camLorentz'] = camLorentz_g
-quad['planetLorentz'] = planetLorentzIS_g.getInvLorentzOpenGL()
+#quad['planetLorentz'] = planetLorentzIS_g.getInvLorentzOpenGL()
 quad['frozenTime'] = np.int(1)
 
 target_angles = np.array([np.pi/2.0,0.0])
@@ -241,8 +241,8 @@ time_factor = 10.0 #the same factor is hardcoded to the glsl file
 v_max = 0.99/20.0/2.0
 #max acceleration
 a_max = 1000.0
-camLorentzSwitch = False
-camKineticSwitch = False
+camLorentzSwitch = True
+camKineticSwitch = True
 
 def camMessage(camLorentzSwitch, camKineticSwitch):
     if quad['frozenTime']:
@@ -431,7 +431,7 @@ def on_draw(dt):
 
 
     #freeMoonPosition(float(quad['phi']), float(quad['psy']), 2.0, 0.3, float(quad['time']))
-    revolvingMoonPosition(float(quad['phi']), float(quad['psy']), 2.0, 0.3, float(quad['time']))
+    #revolvingMoonPosition(float(quad['phi']), float(quad['psy']), 2.0, 0.3, float(quad['time']))
     quad.draw(gl.GL_TRIANGLE_STRIP)
 
 
