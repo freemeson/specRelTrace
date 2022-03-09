@@ -233,7 +233,7 @@ quad['psy'] = 0.9
 quad['screen_ratio'] = 1.0
 quad['camLorentz'] = camLorentz_g
 #quad['planetLorentz'] = planetLorentzIS_g.getInvLorentzOpenGL()
-quad['frozenTime'] = np.int(1)
+quad['frozenTime'] = np.int(0)
 
 target_angles = np.array([np.pi/2.0,0.0])
 angvel = np.array([0.0, 0.0])
