@@ -11,9 +11,14 @@ python -m pip install numpy pyopengl glumpy
 
 You can run
 ```
-python renderGlumpy.py
+python renderGallery.py
 ```
-for a nice moving output like this
+and
+```
+python renderPlanets.py
+```
+for a nice moving outputs like these
+![moving cube](planetsRefImg.png?raw=true "The exaggerated jovian system with the Galilean moons, seen from the earth")
 
 ![moving cube](imageGlumpy.png?raw=true "Checkered cube moving with 0.5c, the others with 0.9c, 0.99, one at rest, two shperes moving in opposite directions and the camera is rotation around the origin")
 
