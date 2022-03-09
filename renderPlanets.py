@@ -1,4 +1,5 @@
 from glumpy import app, gloo, gl, data
+import os
 #from pyglet.window import key
 from inertialSystem import *
 from emissionTimeSolver import *
@@ -287,13 +288,14 @@ quad['screen_ratio'] = 1.0
 quad['camLorentz'] = camLorentz_g
 quad['planetLorentz'] = planetLorentzIS_g.getInvLorentzOpenGL()
 quad['frozenTime'] = np.int(1)
-quad[plm.varNames.planetMap] = data.get('/Users/kovesarki/src/specRelTrace/maps/jupiter_PIA02864.jpeg')
-quad[plm.varNames.moonMap[0]] = data.get("/Users/kovesarki/src/specRelTrace/maps/3840px-Io_from_Galileo_and_Voyager_missions.jpeg")
-quad[plm.varNames.moonMap[1]] = data.get("/Users/kovesarki/src/specRelTrace/maps/europa-IMGUR.jpeg")
-quad[plm.varNames.moonMap[2]] = data.get("/Users/kovesarki/src/specRelTrace/maps/Map_of_Ganymede_by_Björn_Jónsson.jpeg")
-quad[plm.varNames.moonMap[3]] = data.get("/Users/kovesarki/src/specRelTrace/maps/callisto_4k_map_by_jcp_johncarlo_dc4fjip-fullview.jpeg")
-quad['sunTexture'] = data.get("/Users/kovesarki/src/specRelTrace/maps/8k_sun.jpeg")
-quad['skyTexture'] = data.get("/Users/kovesarki/src/specRelTrace/maps/starmap_4k.jpeg")
+cwd = os.getcwd()
+quad[plm.varNames.planetMap] = data.get(cwd+'/maps/jupiter_PIA02864.jpeg')
+quad[plm.varNames.moonMap[0]] = data.get(cwd+"/maps/3840px-Io_from_Galileo_and_Voyager_missions.jpeg")
+quad[plm.varNames.moonMap[1]] = data.get(cwd+"/maps/europa-IMGUR.jpeg")
+quad[plm.varNames.moonMap[2]] = data.get(cwd+"/maps/Map_of_Ganymede_by_Björn_Jónsson.jpeg")
+quad[plm.varNames.moonMap[3]] = data.get(cwd+"/maps/callisto_4k_map_by_jcp_johncarlo_dc4fjip-fullview.jpeg")
+quad['sunTexture'] = data.get(cwd+"/maps/8k_sun.jpeg")
+quad['skyTexture'] = data.get(cwd+"/maps/starmap_4k.jpeg")
 
 target_angles = np.array([np.pi/2.0,0.0])
 angvel = np.array([0.0, 0.0])
