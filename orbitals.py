@@ -146,7 +146,7 @@ class planetAndMoons :
         self.moon_omega = moon_omega
         self.planet_name = planet_name
         self.E = E
-        print(E)
+        #print(E)
         self.Einv = np.linalg.inv(E)
         self.createVariableNames()
 
