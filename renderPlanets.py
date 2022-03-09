@@ -24,11 +24,13 @@ planetTilt = np.array( [[1.0, 0.0, 0.0, 0.0],
                         [0.0, 1.0, 0.0, 0.0],
                         [0.0, 0.0, 0.0, 1.0]])
 
-plm = planetAndMoons([0.0, 0.0, 0.0, 0.0], 20.0, 2.0, 0.002,   [3.0,4.25,6.0,12], [0.3, 0.3, 0.5,0.5], [0.2,0.1,0.05, 0.025], planetTilt, "Testunus" )
+plm = planetAndMoons([0.0, 0.0, 0.0, 0.0], 25.0, 2.0, 0.002,   [3.0,4.25,6.0,12], [0.3, 0.3, 0.5,0.5], [0.2,0.1,0.05, 0.025], planetTilt, "Testunus" )
 
 
 fragment = """uniform sampler2D sunTexture; 
 uniform sampler2D skyTexture;
+uniform float cameraDirection_phi;
+uniform float cameraDirection_psy;
 """ + plm.getVariableDeclarations() + fragmentHeader + doppler + solids + """
 
 
@@ -224,13 +226,16 @@ void main (void){
 
 	//float phi = time/4.0;
    mat4 rotationXZ = mat4( cos(phi),0.0, -sin(phi), 0.0, 0.0, 1.0, 0.0, 0.0, sin(phi), 0.0, cos(phi), 0.0, 0.0, 0.0, 0.0, 1.0  );
+       mat4 rotationCamXZ = mat4( cos(cameraDirection_phi),0.0, -sin(cameraDirection_phi), 0.0, 0.0, 1.0, 0.0, 0.0, sin(cameraDirection_phi), 0.0, cos(cameraDirection_phi), 0.0, 0.0, 0.0, 0.0, 1.0  );
 
 	//float psy = 0.3;
 
 	mat4 rotationYZ = mat4( 1.0, 0.0, 0.0, 0.0, 0.0, cos(psy), -sin(psy), 0.0, 0.0, sin(psy), cos(psy), 0.0, 0.0, 0.0, 0.0, 1.0 );
+	mat4 rotationCamYZ = mat4( 1.0, 0.0, 0.0, 0.0, 0.0, cos(cameraDirection_psy), -sin(cameraDirection_psy), 0.0, 0.0, sin(cameraDirection_psy), cos(cameraDirection_psy), 0.0, 0.0, 0.0, 0.0, 1.0 );
 
 	ro = camLorentz*rotationXZ * rotationYZ* ro;
-	rd = camLorentz *rotationXZ * rotationYZ*rd;
+	//rd = camLorentz *rotationXZ * rotationYZ*rd;
+        rd = camLorentz *rotationCamXZ * rotationCamYZ*rd;
 
         float showTime = camDist;
         if (frozenTime!=1) {
@@ -270,8 +275,9 @@ texture_coords = np.array([[0, 1], [0, 0], [1, 1], [1, 0]])
 
 planetLorentzIS_g = inertialSystem( [0.0, 0.0, 0.0 , 0.0],  [1.0, 0.0, 0.0], [0.0, 0.0, 0.0],   (0.0, 0.0, 0.0)  )
 
-planetMoonSystem = planetAndMoons([0.0, 0.0, 0.0, 0.0], 3.0, 1.0, 0.01,   [1.0,1.3], [1.0,1.0], [0.4,0.2] )
+#planetMoonSystem = planetAndMoons([0.0, 0.0, 0.0, 0.0], 3.0, 1.0, 0.01,   [1.0,1.3], [1.0,1.0], [0.4,0.2] )
 
+planet_apparent_direction_g = np.zeros(3)
 camLorentz_g = np.eye(4, dtype=np.float32)
 quad['vTexCoords0'] = texture_coords
 camAngle = np.array([0.0, 0.9])
@@ -297,6 +303,7 @@ v_max = 0.99/20.0/2.0
 a_max = 1000.0
 camLorentzSwitch = False
 camKineticSwitch = False
+camObserverPlanet = True
 
 def camMessage(camLorentzSwitch, camKineticSwitch):
     if quad['frozenTime']:
@@ -428,9 +435,30 @@ def tiltedRevolvingPlanetAndMoonsPosition(camPhi, camPsy, R, omega, absTime):
 
     #camDisplacement = -10.0*time*np.array(planetLorentzIS_g.velocity)
     cam4D = plm.Einv.dot(np.array( list( cameraPos3D  ) + [10.0*time]   ))
-    setVars(plm.varNames.planetPos, plm.varNames.planetLor, plm.planet_apparent_inertial_system(cam4D))
+    planet_apparent_iS =  plm.planet_apparent_inertial_system(cam4D)
+    
+    setVars(plm.varNames.planetPos, plm.varNames.planetLor,planet_apparent_iS)
     for i in range(len(plm.moon_RR)):
         setVars(plm.varNames.moonPos[i], plm.varNames.moonLor[i], plm.moon_apparent_inertial_system(cam4D,i))
+
+    direction = plm.E.dot(planet_apparent_iS.origin)[0:3] - np.array(cameraPos3D)
+    global planet_apparent_direction_g
+    planet_apparent_direction_g = np.append(direction, -np.linalg.norm(direction))
+    
+#    print(plm.E.dot(planet_apparent_iS.origin)[0:4])
+#    print(cameraPos3D)
+#    print(normalize(direction))
+    
+#    loc_phi = quad['cameraDirection_phi'] =  -np.pi + np.arctan2(direction[0] , direction[2])
+#    loc_psy = quad['cameraDirection_psy'] =  -np.pi/2 + np.arccos(direction[1] / np.linalg.norm(direction))
+#    print(quad['cameraDirection_phi'])
+#    rotM = np.array( [[np.cos(loc_phi) , 0.0, -np.sin(loc_phi)],[0.0, 1.0, 0.0], [np.sin(loc_phi),0.0, np.cos(loc_phi)]]    )
+#    rotN = np.array( [np.array([1.0, 0.0, 0.0]),  np.array([0.0, np.cos(loc_psy), -np.sin(loc_psy)]), np.array([0.0, np.sin(loc_psy), np.cos(loc_psy)]) ]    )
+#    print(rotM)
+#    print(rotN)
+#    print( rotM.dot(rotN.dot(np.array([0.0, 0.0, 1.0]))  ))
+    #quad['cameraDirection_psy'] = np.arccos(direction[1] / np.linalg.norm(direction))
+    
 
 def freeMoonPosition(camPhi, camPsy, R, omega, absTime):
     time = np.mod( absTime , 10.0  ) - 5.0
@@ -478,6 +506,10 @@ def kineticRotation(dt):
 
                 quad['phi'] += new_angular_velocity[0]*dt*time_factor
                 quad['psy'] += new_angular_velocity[1]*dt*time_factor
+
+                quad['cameraDirection_phi'] = quad['phi']
+                quad['cameraDirection_psy'] = quad['psy']
+
                 #print(angvel)
 #                pos = sph2cart(psi, phy, 20.0)[ 0, 2, 1  ] #x,z,y is needed
                 vel = sph2cartTangent(float(quad['phi']), float(quad['psy']), float(new_angular_velocity[0]), float(new_angular_velocity[1]), 20.0)[[1, 2, 0]]
@@ -496,19 +528,58 @@ def kineticRotation(dt):
                 quad['camLorentz'] = camLorentz_g
 
 
+def observerPlanet(dt):
+    angular_velocity = 0.02
+    target_angles[0] += angular_velocity*dt*time_factor;
+#    target_angles[1] =  0.0
+    quad['phi'] = target_angles[0]
+    quad['psy'] = target_angles[1]
+
+def observerPlanetLook(dt):
+    angular_velocity = 0.02
+
+    vel = sph2cartTangent(float(quad['phi']), float(quad['psy']), float(angular_velocity), 0.0, 20.0)[[1, 2, 0]]
+#    print(vel)
+    iS = inertialSystem( [0.0, 0.0, 0.0 , 0.0],  [1.0, 0.0, 0.0], [0.0, 0.0, 0.0],   vel  ) ##radius is 20.0
+
+    global planet_apparent_direction_g
+    global camLorentz_g
+    camLorentz_g = iS.getLorentzOpenGL()
+
+    #print(camLorentz_g)
+    direction = camLorentz_g.dot(planet_apparent_direction_g)[0:3]
+    loc_phi = quad['cameraDirection_phi'] =  -np.pi + np.arctan2(direction[0] , direction[2])
+    loc_psy = quad['cameraDirection_psy'] =  -np.pi/2 + np.arccos(direction[1] / np.linalg.norm(direction))
+#    print(quad['cameraDirection_phi'])
+    rotM = np.array( [[np.cos(loc_phi) , 0.0, -np.sin(loc_phi)],[0.0, 1.0, 0.0], [np.sin(loc_phi),0.0, np.cos(loc_phi)]]    )
+    rotN = np.array( [np.array([1.0, 0.0, 0.0]),  np.array([0.0, np.cos(loc_psy), -np.sin(loc_psy)]), np.array([0.0, np.sin(loc_psy), np.cos(loc_psy)]) ]    )
+
+    quad['camLorentz'] = camLorentz_g
+    #quad['camLorentz'] = np.eye(4)
+ 
 def directRotation(dt):
     quad['phi'] = target_angles[0]
     quad['psy'] = target_angles[1]
+
+    quad['cameraDirection_phi'] = quad['phi']
+    quad['cameraDirection_psy'] = quad['psy']
+
 
 # Tell glumpy what needs to be done at each redraw
 @window.event
 def on_draw(dt):
     #window.clear()
     quad['time']=app.clock.time.time()-t0
-    if camKineticSwitch:
-        kineticRotation(dt)
+    if not camObserverPlanet:
+        if camKineticSwitch:
+            kineticRotation(dt)
+        else:
+            directRotation(dt)
     else:
-        directRotation(dt)
+        observerPlanet(dt)
+
+       # directRotation(dt)
+        
     #moonPosition(float(quad['phi']), float(quad['psy']), 3.0, 0.2, float(quad['time']))
 
 
@@ -518,6 +589,10 @@ def on_draw(dt):
 
     #revolvingPlanetAndMoonsPosition(float(quad['phi']), float(quad['psy']), 2.0, 0.3, float(quad['time']))
     tiltedRevolvingPlanetAndMoonsPosition(float(quad['phi']), float(quad['psy']), 2.0, 0.3, float(quad['time']))
+
+    if camObserverPlanet:
+        observerPlanetLook(dt)
+        
     quad.draw(gl.GL_TRIANGLE_STRIP)
 
 
