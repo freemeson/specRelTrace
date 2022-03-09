@@ -301,8 +301,8 @@ time_factor = 10.0 #the same factor is hardcoded to the glsl file
 v_max = 0.99/20.0/2.0
 #max acceleration
 a_max = 1000.0
-camLorentzSwitch = False
-camKineticSwitch = False
+camLorentzSwitch = True
+camKineticSwitch = True
 camObserverPlanet = True
 
 def camMessage(camLorentzSwitch, camKineticSwitch):
@@ -329,6 +329,7 @@ def printHelp():
     print('press \'c\' to switch camera movement between instantaneous and kinetic ')
     print('press \'l\' to switch camera movement\'s Lorenzt Boost on or off')
     print('press \'t\' to switch camera time between frozen and periodic')
+    print('press \'o\' to switch camera position to a revolving planet, facing Jupiter' )
     print('click and drag with the mouse pointer to rotate screen')
 
     print('\npress \'h\' for this help message')
@@ -615,9 +616,12 @@ def on_key_press(symbol, modifiers):
     if symbol==99:
         global camKineticSwitch
         camKineticSwitch = not camKineticSwitch
+    if symbol==111:
+        global camObserverPlanet
+        camObserverPlanet = not camObserverPlanet
     if symbol==116:
         quad['frozenTime'] = not quad['frozenTime']
-        #'l'=108, 'c'= 99, 't'= 116
+        #'l'=108, 'c'= 99, 't'= 116, 'o' = 111
     if symbol==104:
         printHelp()
 
