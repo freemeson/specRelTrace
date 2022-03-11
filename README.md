@@ -11,16 +11,16 @@ python -m pip install numpy pyopengl glumpy
 
 You can run
 ```
-python renderGallery.py
+python renderPlanets.py
 ```
 and
 ```
-python renderPlanets.py
+python renderGallery.py
 ```
 for a nice moving outputs like these
-![moving cube](planetsRefImg.png?raw=true "The exaggerated jovian system with the Galilean moons, seen from the earth")
+![moving cube](refImages/planetsRefImg.png?raw=true "The exaggerated jovian system with the Galilean moons, seen from the earth")
 
-![moving cube](imageGlumpy.png?raw=true "Checkered cube moving with 0.5c, the others with 0.9c, 0.99, one at rest, two shperes moving in opposite directions and the camera is rotation around the origin")
+![moving cube](refImages/imageGlumpy.png?raw=true "Checkered cube moving with 0.5c, the others with 0.9c, 0.99, one at rest, two shperes moving in opposite directions and the camera is rotation around the origin")
 
 You can rotate the scene with a mouse drag. The relativistic Doppler effect shifts the light to ultraviolet (UV) or infrared range, with a non-static visual effect.
 The camera rotates around and points to a single point, above the stationary cube on the black and white plane. The required Lorentz boost rotates and distorts tthe view, this is the relativistic aberration.
@@ -30,8 +30,8 @@ The camera rotates around and points to a single point, above the stationary cub
 Simple ray-tracing code written in python. 
 The example renderer produces a ray-traced image of a checkered cube, moving with 90% the speed of light.
 
-![moving cube](image.png?raw=true "Checkered cube moving with 0.9c")
-<!-- ![plot](image.png) -->
+![moving cube](refImages/image.png?raw=true "Checkered cube moving with 0.9c")
+<!-- ![plot](refImages/image.png) -->
 
 Just run 
 ```
