@@ -1,5 +1,10 @@
-from cube import *
 import matplotlib.pyplot as plt
+import os
+import sys
+cwd = os.getcwd()
+sys.path.append(cwd+'/imports/')
+
+from cube import *
 
 
 width = 600;height = 400
@@ -30,10 +35,13 @@ for i, y in enumerate(np.linspace(screen[1], screen[3], height)):
         #print(coord)
 
         image[i,j] = np.clip( color, 0, 1)
-        
-        
+
+
         # image[i, j] = ...
 
     print("progress: %d/%d" % (i + 1, height))
 
 plt.imsave('image.png', image)
+#plt.show()
+#plt.imshow(image)
+
