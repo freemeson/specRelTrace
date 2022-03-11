@@ -19,6 +19,7 @@ python renderGallery.py
 ```
 for a nice moving outputs like these
 ![moving cube](refImages/planetsRefImg.png?raw=true "The exaggerated jovian system with the Galilean moons, seen from the earth")
+The camera revolves around the sun and its Lorentz boost is always visible, and by default the camera points to jupiter. You can change the camera position with a mouse drag around the sun, or move the revolve center a bit above the sun. 
 
 ![moving cube](refImages/imageGlumpy.png?raw=true "Checkered cube moving with 0.5c, the others with 0.9c, 0.99, one at rest, two shperes moving in opposite directions and the camera is rotation around the origin")
 
