@@ -1,11 +1,14 @@
 from glumpy import app, gloo, gl, data
+import numpy as np
 import os
+import sys
+cwd = os.getcwd()
+sys.path.append(cwd+'/imports/')
+
 #from pyglet.window import key
 from inertialSystem import *
 from emissionTimeSolver import *
 from orbitals import *
-
-import numpy as np
 from doppler import *
 from solids import *
 from fragmentHeader import *
@@ -288,7 +291,6 @@ quad['screen_ratio'] = 1.0
 quad['camLorentz'] = camLorentz_g
 quad['planetLorentz'] = planetLorentzIS_g.getInvLorentzOpenGL()
 quad['frozenTime'] = np.int(1)
-cwd = os.getcwd()
 quad[plm.varNames.planetMap] = data.get(cwd+'/maps/jupiter_PIA02864.jpeg')
 quad[plm.varNames.moonMap[0]] = data.get(cwd+"/maps/3840px-Io_from_Galileo_and_Voyager_missions.jpeg")
 quad[plm.varNames.moonMap[1]] = data.get(cwd+"/maps/europa-IMGUR.jpeg")
@@ -531,15 +533,14 @@ def kineticRotation(dt):
                 quad['camLorentz'] = camLorentz_g
 
 
-def observerPlanet(dt):
-    angular_velocity = 0.02
+def observerPlanet(dt,angular_velocity = 0.03):
+    
     target_angles[0] += angular_velocity*dt*time_factor;
 #    target_angles[1] =  0.0
     quad['phi'] = target_angles[0]
     quad['psy'] = target_angles[1]
 
-def observerPlanetLook(dt):
-    angular_velocity = 0.02
+def observerPlanetLook(dt,angular_velocity = 0.03):
 
     vel = sph2cartTangent(float(quad['phi']), float(quad['psy']), float(angular_velocity), 0.0, 20.0)[[1, 2, 0]]
 #    print(vel)
@@ -579,7 +580,7 @@ def on_draw(dt):
         else:
             directRotation(dt)
     else:
-        observerPlanet(dt)
+        observerPlanet(dt, angular_velocity = 0.03)
 
        # directRotation(dt)
         
@@ -594,7 +595,7 @@ def on_draw(dt):
     tiltedRevolvingPlanetAndMoonsPosition(float(quad['phi']), float(quad['psy']), 2.0, 0.3, float(quad['time']))
 
     if camObserverPlanet:
-        observerPlanetLook(dt)
+        observerPlanetLook(dt, angular_velocity = 0.03)
         
     quad.draw(gl.GL_TRIANGLE_STRIP)
 
