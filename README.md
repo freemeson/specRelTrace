@@ -6,7 +6,7 @@ Real-time ray tracing is possible on most GPUs. This requires an openGL library 
 are glumpy and pyopengl in our case. Install all the requirements as
 
 ```
-python -m pip install numpy pyopengl glumpy 
+python -m pip install numpy pyopengl glumpy triangle cython pyglet
 ```
 
 You can run
@@ -61,3 +61,5 @@ https://www.shadertoy.com/view/tl23Rm
 https://www.shadertoy.com/view/ll2cDc
 
 https://www.shadertoy.com/view/ltB3zD
+
+# the various planet and star maps are not my creations, but their licence seems to be open source
